@@ -30,7 +30,7 @@ export default function ExamineePage() {
     const fetchSession = async () => {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/sessions/${sessionId}`
+          `${process.env.REACT_APP_API_BASE_URL}/sessions/${sessionId}`
         );
 
         if (!res.ok) {

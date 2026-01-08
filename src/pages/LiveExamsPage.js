@@ -8,7 +8,7 @@ export default function LiveExamsPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/exams/live`)
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/exams/live`)
       .then(res => res.json())
       .then(data => {
         console.log("LIVE EXAMS RESPONSE:", data);
