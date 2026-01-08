@@ -21,17 +21,17 @@ export default function CheatingLog({ logs = [] }) {
             >
               <div className="flex justify-between items-center">
                 <span className="font-medium">
-                  {log.behavior_type}
+                  {log.event_type}
                 </span>
                 <StatusBadge status={log.severity} />
               </div>
 
               <p className="text-sm text-gray-600">
-                {log.description}
+                {log.details}
               </p>
 
               <div className="text-xs text-gray-500 flex justify-between">
-                <span>Confidence: {log.confidence}%</span>
+                <span>Confidence: {Math.round(log.confidence_level * 100)}%</span>
                 <span>
                   {new Date(log.detected_at).toLocaleTimeString()}
                 </span>

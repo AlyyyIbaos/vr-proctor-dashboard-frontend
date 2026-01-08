@@ -11,7 +11,9 @@ import socket from "../services/socket";
 export default function ExamineePage() {
   const { sessionId } = useParams();
 
-  // ✅ ALL HOOKS MUST BE DECLARED FIRST
+  // ============================
+  // STATE
+  // ============================
   const [session, setSession] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -21,7 +23,6 @@ export default function ExamineePage() {
   // FETCH SESSION DETAILS
   // ============================
   useEffect(() => {
-    // 🚫 If sessionId is missing, do not fetch
     if (!sessionId) {
       setLoading(false);
       return;
@@ -39,14 +40,14 @@ export default function ExamineePage() {
 
         const data = await res.json();
 
-        console.log("SESSION DETAILS RESPONSE:", data);
-
         setSession({
           id: data.id,
           status: data.status,
           riskLevel:
-          data.risk_level.charAt(0).toUpperCase() +
-          data.risk_level.slice(1),
+            data.risk_level
+              ? data.risk_level.charAt(0).toUpperCase() +
+                data.risk_level.slice(1)
+              : "Low",
 
           examinee_name: data.examinee_name,
           exam_title: data.exam_title,
@@ -54,31 +55,49 @@ export default function ExamineePage() {
           score: data.score,
           max_score: data.max_score,
         });
-
-        setAlerts(data.alerts || []);
-        setLogs(data.alerts || []);
       } catch (error) {
         console.error("FETCH SESSION ERROR:", error);
         setSession(null);
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchSession();
+    const fetchCheatingLogs = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.REACT_APP_API_BASE_URL}/detections/session/${sessionId}`
+        );
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch cheating logs");
+        }
+
+        const data = await res.json();
+
+        setLogs(data);
+        setAlerts(data);
+      } catch (error) {
+        console.error("FETCH CHEATING LOGS ERROR:", error);
+        setLogs([]);
+        setAlerts([]);
+      }
+    };
+
+    Promise.all([fetchSession(), fetchCheatingLogs()]).finally(() =>
+      setLoading(false)
+    );
   }, [sessionId]);
 
   // ============================
-  // SOCKET.IO — LIVE ALERTS
+  // SOCKET.IO — LIVE UPDATES
   // ============================
   useEffect(() => {
     if (!sessionId) return;
 
     socket.emit("join_session", sessionId);
 
-    socket.on("new_alert", (alert) => {
-      setAlerts((prev) => [alert, ...prev]);
-      setLogs((prev) => [alert, ...prev]);
+    socket.on("new_alert", (log) => {
+      setAlerts((prev) => [log, ...prev]);
+      setLogs((prev) => [log, ...prev]);
     });
 
     return () => {
@@ -88,7 +107,7 @@ export default function ExamineePage() {
   }, [sessionId]);
 
   // ============================
-  // RENDER LOGIC (AFTER HOOKS)
+  // RENDER STATES
   // ============================
   if (!sessionId) {
     return (
@@ -126,17 +145,14 @@ export default function ExamineePage() {
   return (
     <DashboardLayout title="Examinee Monitoring">
       <div className="space-y-6">
-
         <ExamineeOverview session={session} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
           <div className="lg:col-span-2">
             <LiveMonitoringPanel alerts={alerts} />
           </div>
 
           <CheatingLog logs={logs} />
-
         </div>
       </div>
     </DashboardLayout>

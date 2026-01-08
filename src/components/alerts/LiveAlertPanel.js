@@ -24,18 +24,18 @@ const LiveAlertPanel = ({ alerts }) => {
           <ul className="space-y-3">
             {alerts.map((alert, index) => (
               <li
-                key={index}
+                key={alert.id ?? index}
                 className="flex items-center justify-between p-3 border rounded-lg"
               >
                 <div>
                   <p className="font-medium">
-                    {alert.behavior_type}
+                    {alert.event_type}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {alert.description}
+                    {alert.details}
                   </p>
                   <p className="text-xs text-gray-400">
-                    Confidence: {alert.confidence}%
+                    Confidence: {Math.round(alert.confidence_level * 100)}%
                   </p>
                 </div>
 
