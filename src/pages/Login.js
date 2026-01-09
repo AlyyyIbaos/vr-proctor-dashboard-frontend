@@ -13,27 +13,23 @@ export default function Login() {
   const [message, setMessage] = useState("");
 
   const requestOtp = async () => {
-    setMessage("Sending OTP...");
+    setMessage("Sending OTP (demo mode)...");
+
+    // 🚨 DEMO MODE: redirect immediately
+    navigate("/student");
+
+    // Still attempt backend call (optional, non-blocking)
     try {
-      const res = await fetch(`${API_URL}/api/auth/request-otp`, {
+      await fetch(`${API_URL}/api/auth/request-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMessage(data.error || "Failed to send OTP");
-        return;
-      }
-
-      setMessage("OTP sent to your email");
-      navigate("/student");
-    } catch {
-      setMessage("Server error");
+    } catch (err) {
+        console.warn("OTP request failed (demo mode):", err);
     }
   };
+
 
   const verifyOtp = async () => {
     setMessage("Verifying OTP...");
