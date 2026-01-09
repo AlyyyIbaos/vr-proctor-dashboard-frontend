@@ -1,15 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import logo from "../assets/synapsee-logo.png";
-
-const API_URL = process.env.REACT_APP_API_URL;
+import DashboardLayout from "../components/layout/DashboardLayout";
 
 export default function StudentPanel() {
-  const navigate = useNavigate();
-  const token = localStorage.getItem("exam_token");
-
   // ============================
-  // STATE
+  // STATE (DEMO / DOC DATA)
   // ============================
   const [student, setStudent] = useState(null);
   const [exam, setExam] = useState(null);
@@ -18,39 +12,37 @@ export default function StudentPanel() {
   const [loading, setLoading] = useState(true);
 
   // ============================
-  // DEMO DATA FETCH
+  // DEMO DATA (FOR PRESENTATION)
   // ============================
   useEffect(() => {
-    // Demo-safe fallback if token is missing
-    if (!token) {
-      setStudent({
-        name: "Juan Dela Cruz",
-        email: "juan.delacruz@university.edu",
-      });
-    }
-
-    // ---- MOCK / DEMO DATA ----
+    // Identity
     setStudent({
       name: "Juan Dela Cruz",
       email: "juan.delacruz@university.edu",
+      student_number: "2021-04567",
+      program: "BS Computer Science",
+      year_level: "3",
     });
 
+    // Exam status
     setExam({
-      status: "Last Exam Completed",
-      exam_title: "CS101 – Final Exam",
+      title: "CS101 – Final Exam",
+      status: "Completed",
       started_at: "09:10 AM",
       ended_at: "09:40 AM",
     });
 
+    // Scores
     setScores([
       {
         exam: "CS101 – Final Exam",
         score: 85,
-        max: 100,
+        max_score: 100,
         passed: true,
       },
     ]);
 
+    // Violations / cheating logs
     setViolations([
       {
         type: "Object Injection",
@@ -67,83 +59,90 @@ export default function StudentPanel() {
     ]);
 
     setLoading(false);
-  }, [token]);
+  }, []);
 
   // ============================
-  // LOGOUT
-  // ============================
-  const logout = () => {
-    localStorage.removeItem("exam_token");
-    navigate("/");
-  };
-
-  // ============================
-  // RENDER
+  // LOADING STATE
   // ============================
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading student panel...
-      </div>
+      <DashboardLayout>
+        <p className="text-gray-500">Loading student panel...</p>
+      </DashboardLayout>
     );
   }
 
+  // ============================
+  // PAGE CONTENT
+  // ============================
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* HEADER */}
-        <div className="bg-white rounded-lg shadow p-4 flex items-center gap-4">
-          <img src={logo} alt="Synapsee Logo" className="h-12" />
-          <div>
-            <h2 className="text-xl font-semibold text-pup-maroon">
-              Student Panel
-            </h2>
-            <p className="text-sm text-gray-600">
-              {student.name} • {student.email}
-            </p>
+    <DashboardLayout>
+      <div className="space-y-6">
+
+        {/* STUDENT IDENTITY */}
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-lg font-semibold text-pup-maroon mb-2">
+            Student Information
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <p><strong>Name:</strong> {student.name}</p>
+            <p><strong>Email:</strong> {student.email}</p>
+            <p><strong>Student Number:</strong> {student.student_number}</p>
+            <p><strong>Program:</strong> {student.program}</p>
+            <p><strong>Year Level:</strong> {student.year_level}</p>
           </div>
         </div>
 
         {/* EXAM STATUS */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="font-semibold mb-2 text-pup-maroon">
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-lg font-semibold text-pup-maroon mb-2">
             Exam Status
-          </h3>
-          <p><strong>Exam:</strong> {exam.exam_title}</p>
+          </h2>
+
+          <p><strong>Exam:</strong> {exam.title}</p>
           <p><strong>Status:</strong> {exam.status}</p>
           <p>
             <strong>Time:</strong> {exam.started_at} – {exam.ended_at}
           </p>
         </div>
 
-        {/* SCORES */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="font-semibold mb-2 text-pup-maroon">
+        {/* EXAM SCORES */}
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-lg font-semibold text-pup-maroon mb-2">
             Exam Scores
-          </h3>
-          {scores.map((s, i) => (
-            <div key={i} className="border-b py-2">
-              {s.exam}: <strong>{s.score}/{s.max}</strong>{" "}
-              {s.passed ? "✅ Passed" : "❌ Failed"}
-            </div>
-          ))}
+          </h2>
+
+          {scores.length === 0 ? (
+            <p className="text-gray-500">No exam scores available.</p>
+          ) : (
+            scores.map((s, index) => (
+              <div key={index} className="border-b py-2 text-sm">
+                {s.exam}:{" "}
+                <strong>
+                  {s.score}/{s.max_score}
+                </strong>{" "}
+                {s.passed ? "✅ Passed" : "❌ Failed"}
+              </div>
+            ))
+          )}
         </div>
 
         {/* VIOLATIONS */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="font-semibold mb-2 text-pup-maroon">
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-lg font-semibold text-pup-maroon mb-2">
             Violations / Cheating Logs
-          </h3>
+          </h2>
 
           {violations.length === 0 ? (
             <p className="text-gray-500">No violations detected.</p>
           ) : (
-            violations.map((v, i) => (
-              <div key={i} className="border-b py-2">
+            violations.map((v, index) => (
+              <div key={index} className="border-b py-2 text-sm">
                 <p>
                   <strong>{v.type}</strong> ({v.severity})
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-gray-600">
                   Confidence: {v.confidence} • Time: {v.time}
                 </p>
               </div>
@@ -151,16 +150,7 @@ export default function StudentPanel() {
           )}
         </div>
 
-        {/* ACTIONS */}
-        <div className="flex justify-end">
-          <button
-            onClick={logout}
-            className="bg-pup-maroon text-white px-6 py-2 rounded hover:bg-pup-goldDark transition"
-          >
-            Logout
-          </button>
-        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
