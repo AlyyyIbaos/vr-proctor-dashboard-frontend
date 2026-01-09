@@ -59,7 +59,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-pup.maroon">
+    <div className="min-h-screen flex items-center justify-center bg-pup-maroon">
       <div className="bg-white p-6 rounded-lg shadow-lg w-80">
         <div className="flex flex-col items-center mb-4">
           <img
@@ -67,13 +67,13 @@ export default function Login() {
             alt="Synapsee Logo"
             className="h-14 mb-2"
           />
-          <h2 className="text-lg font-semibold text-pup.maroon">
+          <h2 className="text-lg font-semibold text-pup-maroon">
             Student Login
           </h2>
         </div>
 
         <input
-          className="w-full mb-3 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pup.goldDark"
+          className="w-full mb-3 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pup-goldDark"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -81,7 +81,7 @@ export default function Login() {
 
         {step === "verify" && (
           <input
-            className="w-full mb-3 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pup.goldDark"
+            className="w-full mb-3 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pup-goldDark"
             placeholder="OTP"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
@@ -97,21 +97,21 @@ export default function Login() {
         {step === "request" ? (
           <button
             onClick={requestOtp}
-            className="w-full bg-pup.maroon text-white py-2 rounded hover:bg-pup.goldDark transition"
+            className="w-full bg-pup-maroon text-white py-2 rounded hover:bg-pup-goldDark transition"
           >
             Send OTP
           </button>
         ) : (
           <button
             onClick={verifyOtp}
-            className="w-full bg-pup.goldDark text-white py-2 rounded hover:bg-pup.goldLight transition"
+            className="w-full bg-pup-goldDark text-white py-2 rounded hover:bg-pup-goldLight transition"
           >
             Verify & Login
           </button>
         )}
 
         <p
-          className="text-sm text-center mt-4 text-pup.maroon cursor-pointer hover:underline"
+          className="text-sm text-center mt-4 text-pup-maroon cursor-pointer hover:underline"
           onClick={() => navigate("/register")}
         >
           New student? Register here

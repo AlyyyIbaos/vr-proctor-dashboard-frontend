@@ -44,7 +44,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-pup.maroon">
+    <div className="min-h-screen flex items-center justify-center bg-pup-maroon">
       <div className="bg-white p-6 rounded-lg shadow-lg w-96">
         <div className="flex flex-col items-center mb-4">
           <img
@@ -52,7 +52,7 @@ export default function RegisterPage() {
             alt="Synapsee Logo"
             className="h-14 mb-2"
           />
-          <h2 className="text-lg font-semibold text-pup.maroon">
+          <h2 className="text-lg font-semibold text-pup-maroon">
             Student Registration
           </h2>
         </div>
@@ -60,31 +60,31 @@ export default function RegisterPage() {
         <input
           name="email"
           placeholder="Email"
-          className="w-full mb-2 px-3 py-2 border rounded focus:ring-2 focus:ring-pup.goldDark"
+          className="w-full mb-2 px-3 py-2 border rounded focus:ring-2 focus:ring-pup-goldDark"
           onChange={handleChange}
         />
         <input
           name="full_name"
           placeholder="Full Name"
-          className="w-full mb-2 px-3 py-2 border rounded focus:ring-2 focus:ring-pup.goldDark"
+          className="w-full mb-2 px-3 py-2 border rounded focus:ring-2 focus:ring-pup-goldDark"
           onChange={handleChange}
         />
         <input
           name="student_number"
           placeholder="Student Number"
-          className="w-full mb-2 px-3 py-2 border rounded focus:ring-2 focus:ring-pup.goldDark"
+          className="w-full mb-2 px-3 py-2 border rounded focus:ring-2 focus:ring-pup-goldDark"
           onChange={handleChange}
         />
         <input
           name="program"
           placeholder="Program"
-          className="w-full mb-2 px-3 py-2 border rounded focus:ring-2 focus:ring-pup.goldDark"
+          className="w-full mb-2 px-3 py-2 border rounded focus:ring-2 focus:ring-pup-goldDark"
           onChange={handleChange}
         />
         <input
           name="year_level"
           placeholder="Year Level"
-          className="w-full mb-4 px-3 py-2 border rounded focus:ring-2 focus:ring-pup.goldDark"
+          className="w-full mb-4 px-3 py-2 border rounded focus:ring-2 focus:ring-pup-goldDark"
           onChange={handleChange}
         />
 
@@ -96,7 +96,7 @@ export default function RegisterPage() {
 
         <button
           onClick={submit}
-          className="w-full bg-pup.maroon text-white py-2 rounded hover:bg-pup.goldDark transition"
+          className="w-full bg-pup-maroon text-white py-2 rounded hover:bg-pup-goldDark transition"
         >
           Register
         </button>
