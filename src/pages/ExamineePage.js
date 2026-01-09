@@ -7,6 +7,7 @@ import LiveMonitoringPanel from "../components/monitoring/LiveMonitoringPanel";
 import CheatingLog from "../components/logs/CheatingLog";
 
 import socket from "../services/socket";
+import { normalizeAlert } from "../lib/utils";
 
 export default function ExamineePage() {
   const { sessionId } = useParams();
@@ -34,9 +35,7 @@ export default function ExamineePage() {
           `${process.env.REACT_APP_API_BASE_URL}/sessions/${sessionId}`
         );
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch session");
-        }
+        if (!res.ok) throw new Error("Failed to fetch session");
 
         const data = await res.json();
 
@@ -67,14 +66,16 @@ export default function ExamineePage() {
           `${process.env.REACT_APP_API_BASE_URL}/detections/session/${sessionId}`
         );
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch cheating logs");
-        }
+        if (!res.ok) throw new Error("Failed to fetch cheating logs");
 
         const data = await res.json();
 
-        setLogs(data);
-        setAlerts(data);
+        const normalized = data
+          .map(normalizeAlert)
+          .filter(Boolean);
+
+        setLogs(normalized);
+        setAlerts(normalized);
       } catch (error) {
         console.error("FETCH CHEATING LOGS ERROR:", error);
         setLogs([]);
@@ -82,9 +83,8 @@ export default function ExamineePage() {
       }
     };
 
-    Promise.all([fetchSession(), fetchCheatingLogs()]).finally(() =>
-      setLoading(false)
-    );
+    Promise.all([fetchSession(), fetchCheatingLogs()])
+      .finally(() => setLoading(false));
   }, [sessionId]);
 
   // ============================
@@ -95,9 +95,12 @@ export default function ExamineePage() {
 
     socket.emit("join_session", sessionId);
 
-    socket.on("new_alert", (log) => {
-      setAlerts((prev) => [log, ...prev]);
-      setLogs((prev) => [log, ...prev]);
+    socket.on("new_alert", (rawAlert) => {
+      const alert = normalizeAlert(rawAlert);
+      if (!alert) return;
+
+      setAlerts((prev) => [alert, ...prev]);
+      setLogs((prev) => [alert, ...prev]);
     });
 
     return () => {
