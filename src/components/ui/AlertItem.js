@@ -1,11 +1,31 @@
 export default function AlertItem({ alert }) {
-  const {
-    behavior_type,
-    description,
-    confidence,
-    severity,
-    detected_at,
-  } = alert;
+  // ============================
+  // NORMALIZE LEGACY + NEW ALERTS
+  // ============================
+  const eventType =
+    alert.event_type ||
+    alert.behavior_type ||
+    "Unknown Event";
+
+  const details =
+    alert.details ||
+    alert.description ||
+    "No details provided";
+
+  const severity =
+    alert.severity || "low";
+
+  const confidenceLevel =
+    alert.confidence_level != null
+      ? Math.round(alert.confidence_level * 100)
+      : alert.confidence != null
+        ? alert.confidence
+        : 0;
+
+  const detectedAt =
+    alert.detected_at ||
+    alert.created_at ||
+    null;
 
   const severityStyle = {
     low: "border-green-400 bg-green-50 text-green-700",
@@ -16,27 +36,25 @@ export default function AlertItem({ alert }) {
   return (
     <div className={`border-l-4 p-3 rounded ${severityStyle}`}>
       <div className="flex justify-between items-start">
-
         <div>
           <p className="font-semibold">
-            {behavior_type}
+            {eventType}
           </p>
 
           <p className="text-sm">
-            {description}
+            {details}
           </p>
 
           <p className="text-xs mt-1">
-            Confidence: {confidence}%
+            Confidence: {confidenceLevel}%
           </p>
         </div>
 
-        {detected_at && (
+        {detectedAt && (
           <span className="text-xs text-gray-500">
-            {new Date(detected_at).toLocaleTimeString()}
+            {new Date(detectedAt).toLocaleTimeString()}
           </span>
         )}
-
       </div>
     </div>
   );
