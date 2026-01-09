@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import Login from "./pages/Login";
 import RegisterPage from "./pages/RegisterPage";
+import StudentPanel from "./pages/StudentPanel";
 import DashboardPage from "./pages/DashboardPage";
 import LiveExamsPage from "./pages/LiveExamsPage";
 import ExamineePage from "./pages/ExamineePage";
