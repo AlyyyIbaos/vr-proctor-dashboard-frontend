@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import logo from "../assets/synapsee-logo.png";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -29,7 +30,7 @@ export default function Login() {
 
       setMessage("OTP sent to your email");
       setStep("verify");
-    } catch (err) {
+    } catch {
       setMessage("Server error");
     }
   };
@@ -50,25 +51,29 @@ export default function Login() {
         return;
       }
 
-      // Store exam session token
       localStorage.setItem("exam_token", data.token);
-
-      setMessage("Login successful");
       navigate("/dashboard");
-    } catch (err) {
+    } catch {
       setMessage("Server error");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-6 rounded shadow w-80">
-        <h2 className="text-lg font-semibold mb-4 text-center">
-          Student Login
-        </h2>
+    <div className="min-h-screen flex items-center justify-center bg-pup.maroon">
+      <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+        <div className="flex flex-col items-center mb-4">
+          <img
+            src={logo}
+            alt="Synapsee Logo"
+            className="h-14 mb-2"
+          />
+          <h2 className="text-lg font-semibold text-pup.maroon">
+            Student Login
+          </h2>
+        </div>
 
         <input
-          className="w-full mb-3 px-3 py-2 border rounded"
+          className="w-full mb-3 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pup.goldDark"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -76,7 +81,7 @@ export default function Login() {
 
         {step === "verify" && (
           <input
-            className="w-full mb-3 px-3 py-2 border rounded"
+            className="w-full mb-3 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pup.goldDark"
             placeholder="OTP"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
@@ -84,7 +89,7 @@ export default function Login() {
         )}
 
         {message && (
-          <p className="text-sm text-center mb-3 text-blue-600">
+          <p className="text-sm text-center mb-3 text-gray-600">
             {message}
           </p>
         )}
@@ -92,21 +97,21 @@ export default function Login() {
         {step === "request" ? (
           <button
             onClick={requestOtp}
-            className="w-full bg-blue-600 text-white py-2 rounded"
+            className="w-full bg-pup.maroon text-white py-2 rounded hover:bg-pup.goldDark transition"
           >
             Send OTP
           </button>
         ) : (
           <button
             onClick={verifyOtp}
-            className="w-full bg-green-600 text-white py-2 rounded"
+            className="w-full bg-pup.goldDark text-white py-2 rounded hover:bg-pup.goldLight transition"
           >
             Verify & Login
           </button>
         )}
 
         <p
-          className="text-sm text-center mt-4 text-blue-600 cursor-pointer"
+          className="text-sm text-center mt-4 text-pup.maroon cursor-pointer hover:underline"
           onClick={() => navigate("/register")}
         >
           New student? Register here
