@@ -29,7 +29,7 @@ export default function Login() {
       }
 
       setMessage("OTP sent to your email");
-      setStep("verify");
+      navigate("/student");
     } catch {
       setMessage("Server error");
     }

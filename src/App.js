@@ -15,6 +15,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/exams" element={<LiveExamsPage />} />
         <Route path="/examinees/:sessionId" element={<ExamineePage />} />
+        <Route path="/student" element={<StudentPanel />} />
       </Routes>
     </Router>
   );
