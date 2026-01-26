@@ -16,7 +16,6 @@ export default function ExamineePage() {
   // STATE
   // ============================
   const [session, setSession] = useState(null);
-  const [alerts, setAlerts] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,15 +41,12 @@ export default function ExamineePage() {
         setSession({
           id: data.id,
           status: data.status,
-          riskLevel:
-            data.risk_level
-              ? data.risk_level.charAt(0).toUpperCase() +
-                data.risk_level.slice(1)
-              : "Low",
-
+          riskLevel: data.risk_level
+            ? data.risk_level.charAt(0).toUpperCase() +
+              data.risk_level.slice(1)
+            : "Low",
           examinee_name: data.examinee_name,
           exam_title: data.exam_title,
-
           score: data.score,
           max_score: data.max_score,
         });
@@ -75,11 +71,9 @@ export default function ExamineePage() {
           .filter(Boolean);
 
         setLogs(normalized);
-        setAlerts(normalized);
       } catch (error) {
         console.error("FETCH CHEATING LOGS ERROR:", error);
         setLogs([]);
-        setAlerts([]);
       }
     };
 
@@ -99,7 +93,6 @@ export default function ExamineePage() {
       const alert = normalizeAlert(rawAlert);
       if (!alert) return;
 
-      setAlerts((prev) => [alert, ...prev]);
       setLogs((prev) => [alert, ...prev]);
     });
 
