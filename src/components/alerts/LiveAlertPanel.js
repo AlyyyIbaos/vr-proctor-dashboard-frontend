@@ -32,7 +32,9 @@ const LiveAlertPanel = ({ alerts }) => {
                     {alert.event_type}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {alert.details}
+                    {typeof alert.details === "string"
+                      ? alert.details
+                      : JSON.stringify(alert.details)}
                   </p>
                   <p className="text-xs text-gray-400">
                     Confidence: {Math.round(alert.confidence_level * 100)}%
