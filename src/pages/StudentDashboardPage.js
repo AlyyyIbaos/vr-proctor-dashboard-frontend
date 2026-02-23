@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import logo from "../assets/synapsee-logo.png";
@@ -12,6 +12,13 @@ export default function StudentDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   const fullName = localStorage.getItem("full_name");
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("exam_token");
+    localStorage.removeItem("user_role");
+    localStorage.removeItem("full_name");
+    navigate("/");
+  }, [navigate]);
 
   useEffect(() => {
     const token = localStorage.getItem("exam_token");
@@ -40,14 +47,7 @@ export default function StudentDashboardPage() {
     };
 
     fetchData();
-  }, [navigate]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("exam_token");
-    localStorage.removeItem("user_role");
-    localStorage.removeItem("full_name");
-    navigate("/");
-  };
+  }, [navigate, handleLogout]);
 
   if (loading) {
     return (
