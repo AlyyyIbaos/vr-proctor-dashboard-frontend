@@ -30,10 +30,15 @@ export default function StudentDashboardPage() {
 
     const fetchData = async () => {
       try {
-        const activeRes = await api.get("/sessions/active");
+        const activeRes = await api.get("/sessions/current");
         const historyRes = await api.get("/sessions/student/history");
 
-        setActiveSessions(activeRes.data);
+        if (activeRes.data) {
+          setActiveSessions([activeRes.data]);
+        } else {
+          setActiveSessions([]);
+        }
+
         setHistory(historyRes.data);
       } catch (err) {
         console.error("STUDENT DASHBOARD ERROR:", err);
