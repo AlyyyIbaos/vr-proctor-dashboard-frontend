@@ -7,6 +7,7 @@ import LiveExamsPage from "./pages/LiveExamsPage";
 import ExamineePage from "./pages/ExamineePage";
 import StudentDashboardPage from "./pages/StudentDashboardPage";
 import StudentSessionReportPage from "./pages/StudentSessionReportPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -17,10 +18,23 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/exams" element={<LiveExamsPage />} />
         <Route path="/examinees/:sessionId" element={<ExamineePage />} />
-        <Route path="/student" element={<StudentDashboardPage />} />
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute>
+              {" "}
+              <StudentDashboardPage />{" "}
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/student/session/:sessionId"
-          element={<StudentSessionReportPage />}
+          element={
+            <ProtectedRoute>
+              {" "}
+              <StudentSessionReportPage />{" "}
+            </ProtectedRoute>
+          }
         />
       </Routes>
     </Router>

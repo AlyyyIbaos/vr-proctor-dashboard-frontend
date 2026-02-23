@@ -1,243 +1,114 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import StudentLayout from "../components/layout/StudentLayout";
-import { Card, CardContent } from "../components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "../components/ui/table";
+import api from "../api";
 
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  // =====================================
-  // FETCH ACTIVE SESSIONS (REAL DATA)
-  // =====================================
+  const [activeSessions, setActiveSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const res = await fetch(
-          `${process.env.REACT_APP_API_BASE_URL}/sessions/active`,
-          {
-            credentials: "include",
-          },
-        );
+        const token = localStorage.getItem("exam_token");
 
-        if (!res.ok) throw new Error("Failed to fetch sessions");
+        if (!token) {
+          navigate("/");
+          return;
+        }
 
-        const data = await res.json();
-        setSessions(data || []);
+        const response = await api.get("/sessions/active");
+        setActiveSessions(response.data);
       } catch (err) {
         console.error("STUDENT DASHBOARD ERROR:", err);
+
+        if (err.response?.status === 401) {
+          localStorage.removeItem("exam_token");
+          localStorage.removeItem("user_role");
+          localStorage.removeItem("full_name");
+          navigate("/");
+        } else {
+          setError("Failed to fetch sessions");
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchSessions();
-  }, []);
+  }, [navigate]);
 
-  // =====================================
-  // DERIVED VALUES
-  // =====================================
-  const latestSession = sessions.length > 0 ? sessions[0] : null;
-
-  const latestScore =
-    latestSession && latestSession.score != null
-      ? `${latestSession.score}/${latestSession.max_score}`
-      : "—";
-
-  const latestStatus = latestSession?.status ?? "No Active Session";
-  const latestRisk = latestSession?.risk_level ?? "low";
-
-  if (loading) {
-    return (
-      <StudentLayout>
-        <p className="text-gray-500">Loading dashboard...</p>
-      </StudentLayout>
-    );
-  }
+  const handleLogout = () => {
+    localStorage.removeItem("exam_token");
+    localStorage.removeItem("user_role");
+    localStorage.removeItem("full_name");
+    navigate("/");
+  };
 
   return (
-    <StudentLayout>
-      {/* ================= HERO ================= */}
-      <div className="mb-10">
-        <h1 className="text-3xl font-semibold text-pup-maroon mb-3">
-          Your Exam & Monitoring Overview
+    <div className="min-h-screen bg-gray-100 p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-pup-maroon">
+          SynapSee Student Portal
         </h1>
 
-        <p className="text-gray-600 max-w-3xl">
-          SynapSee ensures fair and secure virtual examinations through
-          AI-powered behavioral analysis and runtime integrity monitoring. Below
-          is your academic and monitoring summary.
-        </p>
-      </div>
-
-      {/* ================= SUMMARY CARDS ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        {/* Academic */}
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="text-sm text-gray-500 mb-2">Academic Summary</h3>
-
-            <p className="text-xl font-semibold text-pup-maroon">
-              {latestScore}
-            </p>
-
-            <p className="text-sm text-gray-600 mt-2">Status: {latestStatus}</p>
-          </CardContent>
-        </Card>
-
-        {/* Behavioral */}
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="text-sm text-gray-500 mb-2">
-              Behavioral Monitoring
-            </h3>
-
-            <p className="text-xl font-semibold text-pup-maroon">
-              Risk Level: {latestRisk}
-            </p>
-
-            <p className="text-sm text-gray-600 mt-2">
-              Based on CNN–LSTM + CAT aggregation
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Runtime */}
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="text-sm text-gray-500 mb-2">Runtime Security</h3>
-
-            <p className="text-xl font-semibold text-pup-maroon">
-              Integrity Monitoring Active
-            </p>
-
-            <p className="text-sm text-gray-600 mt-2">
-              Object & Scene Validation
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ================= TABS ================= */}
-      <div className="mb-6 border-b flex gap-8 text-sm font-medium">
         <button
-          onClick={() => setActiveTab("overview")}
-          className={`pb-3 ${
-            activeTab === "overview"
-              ? "border-b-2 border-pup-maroon text-pup-maroon"
-              : "text-gray-500 hover:text-pup-maroon"
-          }`}
+          onClick={handleLogout}
+          className="text-sm bg-pup-maroon text-white px-4 py-2 rounded hover:bg-pup-goldDark transition"
         >
-          Overview
-        </button>
-
-        <button
-          onClick={() => setActiveTab("history")}
-          className={`pb-3 ${
-            activeTab === "history"
-              ? "border-b-2 border-pup-maroon text-pup-maroon"
-              : "text-gray-500 hover:text-pup-maroon"
-          }`}
-        >
-          Exam History
+          Logout
         </button>
       </div>
 
-      {/* ================= TAB CONTENT ================= */}
-      {activeTab === "overview" && (
-        <Card>
-          <CardContent className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Active Sessions</h2>
+      {/* Loading */}
+      {loading && <div className="text-gray-600">Loading your sessions...</div>}
 
-            {sessions.length === 0 && (
-              <p className="text-gray-500">No active sessions found.</p>
-            )}
+      {/* Error */}
+      {error && <div className="text-red-600 font-medium">{error}</div>}
 
-            {sessions.map((session) => (
-              <div
-                key={session.id}
-                className="border rounded-lg p-4 mb-4 flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-semibold">
-                    {session.exams?.title ?? "Exam"}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Started: {new Date(session.started_at).toLocaleString()}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Risk Level: {session.risk_level}
-                  </p>
-                </div>
+      {/* Active Sessions */}
+      {!loading && !error && (
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-lg font-semibold mb-4 text-pup-maroon">
+            Active Sessions
+          </h2>
 
-                <button
-                  onClick={() => navigate(`/student/session/${session.id}`)}
-                  className="text-pup-maroon hover:underline text-sm"
+          {activeSessions.length === 0 ? (
+            <p className="text-gray-600">No active sessions found.</p>
+          ) : (
+            <ul className="space-y-3">
+              {activeSessions.map((session) => (
+                <li
+                  key={session.id}
+                  className="border rounded p-4 flex justify-between items-center"
                 >
-                  View Report
-                </button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+                  <div>
+                    <p className="font-medium">
+                      {session.exams?.title || "Exam"}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Status: {session.status}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Risk Level: {session.risk_level}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => navigate(`/student/session/${session.id}`)}
+                    className="bg-pup-maroon text-white px-4 py-2 rounded hover:bg-pup-goldDark transition"
+                  >
+                    View
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
-
-      {activeTab === "history" && (
-        <Card>
-          <CardContent className="p-6">
-            <h2 className="text-lg font-semibold mb-6">Exam History</h2>
-
-            {sessions.length === 0 ? (
-              <p className="text-gray-500">No exam history available.</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Exam</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Risk</TableHead>
-                    <TableHead>Started</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-
-                <TableBody>
-                  {sessions.map((session) => (
-                    <TableRow key={session.id}>
-                      <TableCell>{session.exams?.title ?? "Exam"}</TableCell>
-                      <TableCell>{session.status}</TableCell>
-                      <TableCell>{session.risk_level}</TableCell>
-                      <TableCell>
-                        {new Date(session.started_at).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <button
-                          onClick={() =>
-                            navigate(`/student/session/${session.id}`)
-                          }
-                          className="text-pup-maroon hover:underline text-sm"
-                        >
-                          View Report
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </StudentLayout>
+    </div>
   );
 }
