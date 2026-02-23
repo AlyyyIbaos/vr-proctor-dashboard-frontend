@@ -1,21 +1,70 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../api"; // make sure this exists
 import logo from "../assets/synapsee-logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
 
-  const requestOtp = () => {
-    // DEMO MODE: go straight to student panel
-    navigate("/student");
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // ===============================
+  // REQUEST OTP
+  // ===============================
+  const requestOtp = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      await api.post("/auth/request-otp", { email });
+
+      setOtpSent(true);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "Failed to send OTP. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ===============================
+  // VERIFY OTP
+  // ===============================
+  const verifyOtp = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await api.post("/auth/verify-otp", {
+        email,
+        otp,
+      });
+
+      const data = response.data;
+
+      // 🔐 SAVE TOKEN
+      localStorage.setItem("exam_token", data.token);
+      localStorage.setItem("user_role", data.role);
+      localStorage.setItem("full_name", data.full_name);
+
+      // 🚀 REDIRECT
+      navigate("/student");
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || "Invalid or expired OTP.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="bg-white rounded shadow w-full max-w-md">
-
-        {/* TOP BAR STYLE HEADER */}
+        {/* HEADER */}
         <div className="h-14 border-b flex items-center px-6 gap-3">
           <img src={logo} alt="SynapSee Logo" className="w-8 h-8" />
           <h1 className="text-lg font-semibold text-gray-800">
@@ -29,20 +78,50 @@ export default function Login() {
             Student Login
           </h2>
 
+          {/* EMAIL INPUT */}
           <input
             className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pup-goldDark"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={otpSent}
           />
 
-          <button
-            onClick={requestOtp}
-            className="w-full bg-pup-maroon text-white py-2 rounded hover:bg-pup-goldDark transition"
-          >
-            Send OTP
-          </button>
+          {/* SEND OTP BUTTON */}
+          {!otpSent && (
+            <button
+              onClick={requestOtp}
+              disabled={loading || !email}
+              className="w-full bg-pup-maroon text-white py-2 rounded hover:bg-pup-goldDark transition disabled:opacity-50"
+            >
+              {loading ? "Sending..." : "Send OTP"}
+            </button>
+          )}
 
+          {/* OTP INPUT (only after sending OTP) */}
+          {otpSent && (
+            <>
+              <input
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pup-goldDark"
+                placeholder="Enter OTP"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+              />
+
+              <button
+                onClick={verifyOtp}
+                disabled={loading || !otp}
+                className="w-full bg-pup-maroon text-white py-2 rounded hover:bg-pup-goldDark transition disabled:opacity-50"
+              >
+                {loading ? "Verifying..." : "Verify OTP"}
+              </button>
+            </>
+          )}
+
+          {/* ERROR MESSAGE */}
+          {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+
+          {/* REGISTER LINK */}
           <p
             className="text-sm text-center text-pup-maroon cursor-pointer hover:underline"
             onClick={() => navigate("/register")}
