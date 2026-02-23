@@ -17,11 +17,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/exams" element={<LiveExamsPage />} />
         <Route path="/examinees/:sessionId" element={<ExamineePage />} />
-        <Route path="/student/dashboard" element={<StudentDashboardPage />} />
-        <Route
-          path="/student/session/:sessionId"
-          element={<StudentSessionReportPage />}
-        />
+        <Route path="/student" element={<StudentDashboardPage />} />
         <Route
           path="/student/session/:sessionId"
           element={<StudentSessionReportPage />}
