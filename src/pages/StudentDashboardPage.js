@@ -1,43 +1,45 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import logo from "../assets/synapsee-logo.png";
 
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
 
   const [activeSessions, setActiveSessions] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
+  const fullName = localStorage.getItem("full_name");
 
   useEffect(() => {
-    const fetchSessions = async () => {
+    const token = localStorage.getItem("exam_token");
+
+    if (!token) {
+      navigate("/");
+      return;
+    }
+
+    const fetchData = async () => {
       try {
-        const token = localStorage.getItem("exam_token");
+        const activeRes = await api.get("/sessions/active");
+        const historyRes = await api.get("/sessions/student/history");
 
-        if (!token) {
-          navigate("/");
-          return;
-        }
-
-        const response = await api.get("/sessions/active");
-        setActiveSessions(response.data);
+        setActiveSessions(activeRes.data);
+        setHistory(historyRes.data);
       } catch (err) {
         console.error("STUDENT DASHBOARD ERROR:", err);
 
         if (err.response?.status === 401) {
-          localStorage.removeItem("exam_token");
-          localStorage.removeItem("user_role");
-          localStorage.removeItem("full_name");
-          navigate("/");
-        } else {
-          setError("Failed to fetch sessions");
+          handleLogout();
         }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSessions();
+    fetchData();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -47,54 +49,118 @@ export default function StudentDashboardPage() {
     navigate("/");
   };
 
-  return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-pup-maroon">
-          SynapSee Student Portal
-        </h1>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading dashboard...
+      </div>
+    );
+  }
 
-        <button
-          onClick={handleLogout}
-          className="text-sm bg-pup-maroon text-white px-4 py-2 rounded hover:bg-pup-goldDark transition"
-        >
-          Logout
-        </button>
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* HEADER */}
+      <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <img src={logo} alt="SynapSee Logo" className="w-8 h-8" />
+          <h1 className="text-xl font-bold text-pup-maroon">
+            SynapSee Student Portal
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <span className="text-gray-600">{fullName}</span>
+          <button
+            onClick={handleLogout}
+            className="bg-pup-maroon text-white px-4 py-2 rounded hover:bg-pup-goldDark transition"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
-      {/* Loading */}
-      {loading && <div className="text-gray-600">Loading your sessions...</div>}
+      {/* CONTENT */}
+      <div className="p-8">
+        <h2 className="text-3xl font-bold text-pup-maroon mb-4">
+          Your Exam & Monitoring Overview
+        </h2>
 
-      {/* Error */}
-      {error && <div className="text-red-600 font-medium">{error}</div>}
+        <p className="text-gray-600 mb-8">
+          SynapSee ensures fair and secure virtual examinations through
+          AI-powered behavioral analysis and runtime integrity monitoring.
+        </p>
 
-      {/* Active Sessions */}
-      {!loading && !error && (
-        <div className="bg-white rounded shadow p-6">
-          <h2 className="text-lg font-semibold mb-4 text-pup-maroon">
-            Active Sessions
-          </h2>
+        {/* SUMMARY CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded shadow">
+            <h3 className="font-semibold mb-2">Academic Summary</h3>
+            <p>
+              Status:{" "}
+              {activeSessions.length > 0
+                ? "Active Session"
+                : "No Active Session"}
+            </p>
+          </div>
 
-          {activeSessions.length === 0 ? (
-            <p className="text-gray-600">No active sessions found.</p>
-          ) : (
-            <ul className="space-y-3">
-              {activeSessions.map((session) => (
-                <li
+          <div className="bg-white p-6 rounded shadow">
+            <h3 className="font-semibold mb-2">Behavioral Monitoring</h3>
+            <p>
+              Risk Level:{" "}
+              {activeSessions.length > 0 ? activeSessions[0].risk_level : "low"}
+            </p>
+            <p className="text-sm text-gray-500">
+              Based on CNN–LSTM + CAT aggregation
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded shadow">
+            <h3 className="font-semibold mb-2">Runtime Security</h3>
+            <p>Integrity Monitoring Active</p>
+          </div>
+        </div>
+
+        {/* TABS */}
+        <div className="flex gap-6 border-b mb-6">
+          <button
+            className={`pb-2 ${
+              activeTab === "overview"
+                ? "border-b-2 border-pup-maroon text-pup-maroon"
+                : ""
+            }`}
+            onClick={() => setActiveTab("overview")}
+          >
+            Overview
+          </button>
+
+          <button
+            className={`pb-2 ${
+              activeTab === "history"
+                ? "border-b-2 border-pup-maroon text-pup-maroon"
+                : ""
+            }`}
+            onClick={() => setActiveTab("history")}
+          >
+            Exam History
+          </button>
+        </div>
+
+        {/* OVERVIEW TAB */}
+        {activeTab === "overview" && (
+          <div className="bg-white rounded shadow p-6">
+            <h3 className="text-lg font-semibold mb-4">Active Sessions</h3>
+
+            {activeSessions.length === 0 ? (
+              <p>No active sessions found.</p>
+            ) : (
+              activeSessions.map((session) => (
+                <div
                   key={session.id}
-                  className="border rounded p-4 flex justify-between items-center"
+                  className="border p-4 rounded mb-4 flex justify-between items-center"
                 >
                   <div>
-                    <p className="font-medium">
-                      {session.exams?.title || "Exam"}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Status: {session.status}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Risk Level: {session.risk_level}
-                    </p>
+                    <p className="font-semibold">{session.exams?.title}</p>
+                    <p>Status: {session.status}</p>
+                    <p>Risk Level: {session.risk_level}</p>
                   </div>
 
                   <button
@@ -103,12 +169,34 @@ export default function StudentDashboardPage() {
                   >
                     View
                   </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* HISTORY TAB */}
+        {activeTab === "history" && (
+          <div className="bg-white rounded shadow p-6">
+            <h3 className="text-lg font-semibold mb-4">Exam History</h3>
+
+            {history.length === 0 ? (
+              <p>No past exams found.</p>
+            ) : (
+              history.map((session) => (
+                <div key={session.id} className="border p-4 rounded mb-4">
+                  <p className="font-semibold">{session.exam_title}</p>
+                  <p>Status: {session.status}</p>
+                  <p>
+                    Score: {session.score} / {session.max_score}
+                  </p>
+                  <p>Final Label: {session.final_label || "Pending"}</p>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
