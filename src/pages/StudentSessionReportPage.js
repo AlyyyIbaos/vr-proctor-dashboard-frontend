@@ -1,24 +1,15 @@
-import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import logo from "../assets/synapsee-logo.png";
 
-export default function StudentDashboardPage() {
+export default function StudentSessionReportPage() {
+  const { sessionId } = useParams();
   const navigate = useNavigate();
 
-  const [activeSessions, setActiveSessions] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [session, setSession] = useState(null);
+  const [report, setReport] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const fullName = localStorage.getItem("full_name");
-
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem("exam_token");
-    localStorage.removeItem("user_role");
-    localStorage.removeItem("full_name");
-    navigate("/");
-  }, [navigate]);
 
   useEffect(() => {
     const token = localStorage.getItem("exam_token");
@@ -28,31 +19,42 @@ export default function StudentDashboardPage() {
       return;
     }
 
-    const fetchData = async () => {
+    const fetchReport = async () => {
       try {
-        const activeRes = await api.get("/sessions/active");
-        const historyRes = await api.get("/sessions/student/history");
+        const sessionRes = await api.get(`/sessions/${sessionId}`);
+        const reportRes = await api.get(
+          `/sessions/${sessionId}/behavioral-report`,
+        );
 
-        setActiveSessions(activeRes.data);
-        setHistory(historyRes.data);
+        setSession(sessionRes.data);
+        setReport(reportRes.data);
       } catch (err) {
-        console.error("STUDENT DASHBOARD ERROR:", err);
+        console.error("REPORT ERROR:", err);
 
         if (err.response?.status === 401) {
-          handleLogout();
+          localStorage.clear();
+          navigate("/");
         }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [navigate, handleLogout]);
+    fetchReport();
+  }, [sessionId, navigate]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Loading dashboard...
+        Loading session report...
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Session not found.
       </div>
     );
   }
@@ -63,138 +65,41 @@ export default function StudentDashboardPage() {
       <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <img src={logo} alt="SynapSee Logo" className="w-8 h-8" />
-          <h1 className="text-xl font-bold text-pup-maroon">
-            SynapSee Student Portal
-          </h1>
+          <h1 className="text-xl font-bold text-pup-maroon">Session Report</h1>
         </div>
 
-        <div className="flex items-center gap-4">
-          <span className="text-gray-600">{fullName}</span>
-          <button
-            onClick={handleLogout}
-            className="bg-pup-maroon text-white px-4 py-2 rounded hover:bg-pup-goldDark transition"
-          >
-            Logout
-          </button>
-        </div>
+        <button
+          onClick={() => navigate("/student")}
+          className="bg-pup-maroon text-white px-4 py-2 rounded hover:bg-pup-goldDark transition"
+        >
+          Back
+        </button>
       </div>
 
-      {/* CONTENT */}
       <div className="p-8">
-        <h2 className="text-3xl font-bold text-pup-maroon mb-4">
-          Your Exam & Monitoring Overview
-        </h2>
+        <h2 className="text-2xl font-bold mb-6">{session.exams?.title}</h2>
 
-        <p className="text-gray-600 mb-8">
-          SynapSee ensures fair and secure virtual examinations through
-          AI-powered behavioral analysis and runtime integrity monitoring.
-        </p>
+        {report.length === 0 ? (
+          <p>No behavioral data available.</p>
+        ) : (
+          report.map((q) => (
+            <div
+              key={q.question_index}
+              className="bg-white p-6 rounded shadow mb-6"
+            >
+              <h3 className="font-semibold mb-2">
+                Question {q.question_index}
+              </h3>
 
-        {/* SUMMARY CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded shadow">
-            <h3 className="font-semibold mb-2">Academic Summary</h3>
-            <p>
-              Status:{" "}
-              {activeSessions.length > 0
-                ? "Active Session"
-                : "No Active Session"}
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded shadow">
-            <h3 className="font-semibold mb-2">Behavioral Monitoring</h3>
-            <p>
-              Risk Level:{" "}
-              {activeSessions.length > 0 ? activeSessions[0].risk_level : "low"}
-            </p>
-            <p className="text-sm text-gray-500">
-              Based on CNN–LSTM + CAT aggregation
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded shadow">
-            <h3 className="font-semibold mb-2">Runtime Security</h3>
-            <p>Integrity Monitoring Active</p>
-          </div>
-        </div>
-
-        {/* TABS */}
-        <div className="flex gap-6 border-b mb-6">
-          <button
-            className={`pb-2 ${
-              activeTab === "overview"
-                ? "border-b-2 border-pup-maroon text-pup-maroon"
-                : ""
-            }`}
-            onClick={() => setActiveTab("overview")}
-          >
-            Overview
-          </button>
-
-          <button
-            className={`pb-2 ${
-              activeTab === "history"
-                ? "border-b-2 border-pup-maroon text-pup-maroon"
-                : ""
-            }`}
-            onClick={() => setActiveTab("history")}
-          >
-            Exam History
-          </button>
-        </div>
-
-        {/* OVERVIEW TAB */}
-        {activeTab === "overview" && (
-          <div className="bg-white rounded shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Active Sessions</h3>
-
-            {activeSessions.length === 0 ? (
-              <p>No active sessions found.</p>
-            ) : (
-              activeSessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="border p-4 rounded mb-4 flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-semibold">{session.exams?.title}</p>
-                    <p>Status: {session.status}</p>
-                    <p>Risk Level: {session.risk_level}</p>
-                  </div>
-
-                  <button
-                    onClick={() => navigate(`/student/session/${session.id}`)}
-                    className="bg-pup-maroon text-white px-4 py-2 rounded hover:bg-pup-goldDark transition"
-                  >
-                    View
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* HISTORY TAB */}
-        {activeTab === "history" && (
-          <div className="bg-white rounded shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Exam History</h3>
-
-            {history.length === 0 ? (
-              <p>No past exams found.</p>
-            ) : (
-              history.map((session) => (
-                <div key={session.id} className="border p-4 rounded mb-4">
-                  <p className="font-semibold">{session.exam_title}</p>
-                  <p>Status: {session.status}</p>
-                  <p>
-                    Score: {session.score} / {session.max_score}
-                  </p>
-                  <p>Final Label: {session.final_label || "Pending"}</p>
-                </div>
-              ))
-            )}
-          </div>
+              <p>Total Windows: {q.total_windows}</p>
+              <p>Flagged Windows: {q.flagged_windows}</p>
+              <p>Avg Probability: {q.avg_probability.toFixed(4)}</p>
+              <p>
+                Final Label:{" "}
+                <span className="font-semibold">{q.final_label}</span>
+              </p>
+            </div>
+          ))
         )}
       </div>
     </div>
