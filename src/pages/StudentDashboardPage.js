@@ -54,6 +54,16 @@ export default function StudentDashboardPage() {
     fetchData();
   }, [navigate, handleLogout]);
 
+  const handleStartExam = async () => {
+    try {
+      const res = await api.post("/sessions/start");
+      alert("Exam session created. You may now launch the VR device.");
+      window.location.reload();
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to start exam.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -153,6 +163,16 @@ export default function StudentDashboardPage() {
         {activeTab === "overview" && (
           <div className="bg-white rounded shadow p-6">
             <h3 className="text-lg font-semibold mb-4">Active Sessions</h3>
+
+            {/* 🔥 START EXAM BUTTON (ONLY IF NO ACTIVE SESSION) */}
+            {activeSessions.length === 0 && (
+              <button
+                onClick={handleStartExam}
+                className="mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+              >
+                Start Live Exam
+              </button>
+            )}
 
             {activeSessions.length === 0 ? (
               <p>No active sessions found.</p>
