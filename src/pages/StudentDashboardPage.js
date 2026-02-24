@@ -56,7 +56,7 @@ export default function StudentDashboardPage() {
 
   const handleStartExam = async () => {
     try {
-      const res = await api.post("/sessions/start");
+      await api.post("/sessions/start");
       alert("Exam session created. You may now launch the VR device.");
       window.location.reload();
     } catch (err) {
