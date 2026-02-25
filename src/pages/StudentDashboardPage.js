@@ -1,9 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import StudentLayout from "../components/layout/StudentLayout";
 
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
   const fullName = localStorage.getItem("full_name") || "Student";
+
+  const [activeTab, setActiveTab] = useState("upcoming");
 
   // =========================
   // MOCK UPCOMING EXAM
@@ -53,13 +56,36 @@ export default function StudentDashboardPage() {
         </div>
 
         {/* ========================= */}
-        {/* UPCOMING EXAM SECTION */}
+        {/* TAB HEADER */}
         {/* ========================= */}
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-gray-800">
-            Upcoming Examination
-          </h3>
+        <div className="flex gap-8 border-b text-lg font-semibold">
+          <button
+            onClick={() => setActiveTab("upcoming")}
+            className={`pb-2 ${
+              activeTab === "upcoming"
+                ? "border-b-2 border-pup-maroon text-pup-maroon"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Upcoming
+          </button>
 
+          <button
+            onClick={() => setActiveTab("completed")}
+            className={`pb-2 ${
+              activeTab === "completed"
+                ? "border-b-2 border-pup-maroon text-pup-maroon"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Completed
+          </button>
+        </div>
+
+        {/* ========================= */}
+        {/* UPCOMING TAB CONTENT */}
+        {/* ========================= */}
+        {activeTab === "upcoming" && (
           <div className="bg-white border rounded-lg p-6 flex justify-between items-center shadow-sm">
             <div>
               <h4 className="text-lg font-semibold">
@@ -80,42 +106,40 @@ export default function StudentDashboardPage() {
               Start Exam
             </button>
           </div>
-        </div>
+        )}
 
         {/* ========================= */}
-        {/* COMPLETED EXAMS SECTION */}
+        {/* COMPLETED TAB CONTENT */}
         {/* ========================= */}
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-gray-800">
-            Completed Examinations
-          </h3>
-
-          {completedExams.map((session) => (
-            <div
-              key={session.id}
-              className="bg-white border rounded-lg p-6 flex justify-between items-center shadow-sm"
-            >
-              <div>
-                <h4 className="text-lg font-semibold">{session.exam_name}</h4>
-                <p className="text-sm text-gray-500">
-                  Score: {session.score} / {session.max_score}
-                </p>
-                <p className="text-sm text-gray-500">
-                  Status: {session.status}
-                </p>
-              </div>
-
-              <button
-                onClick={() =>
-                  navigate(`/student/report/${session.id}?tab=academic`)
-                }
-                className="bg-pup-maroon text-white px-5 py-2 rounded hover:bg-pup-goldDark transition"
+        {activeTab === "completed" && (
+          <div className="space-y-4">
+            {completedExams.map((session) => (
+              <div
+                key={session.id}
+                className="bg-white border rounded-lg p-6 flex justify-between items-center shadow-sm"
               >
-                View Report
-              </button>
-            </div>
-          ))}
-        </div>
+                <div>
+                  <h4 className="text-lg font-semibold">{session.exam_name}</h4>
+                  <p className="text-sm text-gray-500">
+                    Score: {session.score} / {session.max_score}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Status: {session.status}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() =>
+                    navigate(`/student/report/${session.id}?tab=academic`)
+                  }
+                  className="bg-pup-maroon text-white px-5 py-2 rounded hover:bg-pup-goldDark transition"
+                >
+                  View Report
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </StudentLayout>
   );
