@@ -4,7 +4,9 @@ import StudentLayout from "../components/layout/StudentLayout";
 import api from "../api";
 
 export default function StudentReportPage() {
-  const { sessionId } = useParams();
+  // 🔴 TEMPORARY TEST MODE
+  const { sessionId: paramSessionId } = useParams();
+  const sessionId = paramSessionId || "26ddd7e7-e287-4654-86a3-315856361bc4";
   const navigate = useNavigate();
 
   const params = new URLSearchParams(window.location.search);
