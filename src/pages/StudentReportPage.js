@@ -1,5 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import StudentLayout from "../components/layout/StudentLayout.js";
+import { useEffect, useState } from "react";
+import StudentLayout from "../components/layout/StudentLayout";
+import api from "../api";
 
 export default function StudentReportPage() {
   const { sessionId } = useParams();
@@ -8,30 +10,68 @@ export default function StudentReportPage() {
   const params = new URLSearchParams(window.location.search);
   const activeTab = params.get("tab") || "academic";
 
-  // MOCK BEHAVIOR DATA (Q1–Q10)
-  const behaviorData = [
-    { q: 1, label: "suspicious" },
-    { q: 2, label: "normal" },
-    { q: 3, label: "normal" },
-    { q: 4, label: "suspicious" },
-    { q: 5, label: "normal" },
-    { q: 6, label: "normal" },
-    { q: 7, label: "normal" },
-    { q: 8, label: "normal" },
-    { q: 9, label: "normal" },
-    { q: 10, label: "suspicious" },
-  ];
+  const [academicData, setAcademicData] = useState(null);
+  const [behaviorData, setBehaviorData] = useState([]);
+  const [runtimeData, setRuntimeData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const suspiciousCount = behaviorData.filter(
-    (b) => b.label === "suspicious",
-  ).length;
+  // ============================================
+  // FETCH ACADEMIC SUMMARY (sessions table)
+  // ============================================
+  useEffect(() => {
+    const fetchAcademic = async () => {
+      try {
+        const res = await api.get(`/sessions/${sessionId}`);
+        setAcademicData(res.data);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load session details.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const overallBehavior = suspiciousCount >= 3 ? "Normal" : "Cheating";
+    fetchAcademic();
+  }, [sessionId]);
 
-  const runtimeViolations = [
-    { type: "Object Whitelisting Violation", question: 4 },
-    { type: "Scene Tampering", question: 10 },
-  ];
+  // ============================================
+  // FETCH BEHAVIOR REPORT (inference_logs)
+  // ============================================
+  useEffect(() => {
+    if (activeTab !== "behavior") return;
+
+    const fetchBehavior = async () => {
+      try {
+        const res = await api.get(
+          `/aggregation/${sessionId}/behavioral-report`,
+        );
+        setBehaviorData(res.data || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchBehavior();
+  }, [activeTab, sessionId]);
+
+  // ============================================
+  // FETCH RUNTIME SECURITY (cheating_logs)
+  // ============================================
+  useEffect(() => {
+    if (activeTab !== "runtime") return;
+
+    const fetchRuntime = async () => {
+      try {
+        const res = await api.get(`/detection/session/${sessionId}`);
+        setRuntimeData(res.data || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchRuntime();
+  }, [activeTab, sessionId]);
 
   return (
     <StudentLayout>
@@ -66,7 +106,7 @@ export default function StudentReportPage() {
                 : ""
             }`}
           >
-            Behavioral Monitoring
+            Monitored Behavior
           </a>
 
           <a
@@ -77,83 +117,108 @@ export default function StudentReportPage() {
                 : ""
             }`}
           >
-            Runtime Security Monitoring
+            Monitored Runtime Security
           </a>
         </div>
 
-        {/* TAB CONTENT */}
-        {activeTab === "academic" && (
+        {loading && <p>Loading...</p>}
+        {error && <p className="text-red-600">{error}</p>}
+
+        {/* ============================ */}
+        {/* ACADEMIC SUMMARY */}
+        {/* ============================ */}
+        {activeTab === "academic" && academicData && (
           <div className="bg-white p-6 rounded shadow space-y-4">
             <p>
-              <strong>Session ID:</strong> {sessionId}
+              <strong>Exam Name:</strong> {academicData.exam_title}
             </p>
             <p>
-              <strong>Exam Name:</strong> Computer Networks Final
+              <strong>Score:</strong> {academicData.score ?? 0} /{" "}
+              {academicData.max_score ?? 0}
             </p>
             <p>
-              <strong>Score:</strong> 42 / 50
+              <strong>Status:</strong> {academicData.status}
             </p>
             <p>
-              <strong>Status:</strong> Completed
+              <strong>Final Behavior Label:</strong>{" "}
+              {academicData.final_label ?? "Pending"}
+            </p>
+            <p>
+              <strong>Confidence:</strong> {academicData.final_confidence ?? 0}
             </p>
           </div>
         )}
 
+        {/* ============================ */}
+        {/* BEHAVIOR MONITORING */}
+        {/* ============================ */}
         {activeTab === "behavior" && (
           <div className="bg-white p-6 rounded shadow space-y-4">
-            <table className="w-full border">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="p-2 border">Question</th>
-                  <th className="p-2 border">Behavior</th>
-                </tr>
-              </thead>
-              <tbody>
-                {behaviorData.map((b) => (
-                  <tr key={b.q}>
-                    <td className="p-2 border text-center">Q{b.q}</td>
-                    <td
-                      className={`p-2 border text-center ${
-                        b.label === "suspicious"
-                          ? "text-red-600 font-semibold"
-                          : "text-green-600"
-                      }`}
-                    >
-                      {b.label}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <p>
-              <strong>Total Suspicious:</strong> {suspiciousCount}
-            </p>
-
-            <p>
-              <strong>Overall Behavior:</strong>{" "}
-              <span className="font-semibold">{overallBehavior}</span>
-            </p>
+            {behaviorData.length === 0 ? (
+              <p>No behavioral anomalies detected.</p>
+            ) : (
+              <>
+                <table className="w-full border">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="p-2 border">Question</th>
+                      <th className="p-2 border">Flagged Windows</th>
+                      <th className="p-2 border">Avg Probability</th>
+                      <th className="p-2 border">Final Label</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {behaviorData.map((q) => (
+                      <tr key={q.question_index}>
+                        <td className="p-2 border text-center">
+                          Q{q.question_index}
+                        </td>
+                        <td className="p-2 border text-center">
+                          {q.flagged_windows}
+                        </td>
+                        <td className="p-2 border text-center">
+                          {q.avg_probability?.toFixed(3)}
+                        </td>
+                        <td className="p-2 border text-center">
+                          {q.final_label}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
           </div>
         )}
 
+        {/* ============================ */}
+        {/* RUNTIME SECURITY */}
+        {/* ============================ */}
         {activeTab === "runtime" && (
           <div className="bg-white p-6 rounded shadow">
-            {runtimeViolations.length === 0 ? (
+            {runtimeData.length === 0 ? (
               <p>No integrity violations detected.</p>
             ) : (
               <table className="w-full border">
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="p-2 border">Type</th>
-                    <th className="p-2 border">Question</th>
+                    <th className="p-2 border">Severity</th>
+                    <th className="p-2 border">Confidence</th>
+                    <th className="p-2 border">Detected At</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {runtimeViolations.map((r, index) => (
-                    <tr key={index}>
-                      <td className="p-2 border">{r.type}</td>
-                      <td className="p-2 border text-center">Q{r.question}</td>
+                  {runtimeData.map((log) => (
+                    <tr key={log.id}>
+                      <td className="p-2 border">{log.event_type}</td>
+                      <td className="p-2 border text-center">{log.severity}</td>
+                      <td className="p-2 border text-center">
+                        {log.confidence_level}
+                      </td>
+                      <td className="p-2 border text-center">
+                        {new Date(log.detected_at).toLocaleString()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
