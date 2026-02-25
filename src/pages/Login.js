@@ -65,6 +65,21 @@ export default function Login() {
     }
   };
 
+  // ===============================
+  // DEV LOGIN (TEMPORARY BYPASS)
+  // ===============================
+  const devLogin = () => {
+    localStorage.setItem("exam_token", "dev-token");
+    localStorage.setItem("user_role", "student");
+    localStorage.setItem("full_name", "Alyssa Reyes");
+    localStorage.setItem("email", "alyssa@example.com");
+    localStorage.setItem("student_number", "2023-00123");
+    localStorage.setItem("program", "BS Computer Science");
+    localStorage.setItem("year_level", "3");
+
+    navigate("/student");
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="bg-white rounded shadow w-full max-w-md">
@@ -123,13 +138,21 @@ export default function Login() {
           {/* ERROR */}
           {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
-          {/* REGISTER LINK (Student Only) */}
+          {/* REGISTER LINK */}
           <p
             className="text-sm text-center text-pup-maroon cursor-pointer hover:underline"
             onClick={() => navigate("/register")}
           >
             New student? Register here
           </p>
+
+          {/* DEV BYPASS LOGIN */}
+          <button
+            onClick={devLogin}
+            className="w-full bg-gray-800 text-white py-2 rounded hover:bg-black transition mt-3"
+          >
+            Dev Login (Bypass OTP)
+          </button>
         </div>
       </div>
     </div>
