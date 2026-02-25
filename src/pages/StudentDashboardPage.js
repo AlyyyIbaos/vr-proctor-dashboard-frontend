@@ -30,11 +30,11 @@ export default function StudentDashboardPage() {
 
     const fetchData = async () => {
       try {
-        const activeRes = await api.get("/sessions/current");
+        const activeRes = await api.get("/sessions/active");
         const historyRes = await api.get("/sessions/student/history");
 
-        if (activeRes.data) {
-          setActiveSessions([activeRes.data]);
+        if (Array.isArray(activeRes.data) && activeRes.data.length > 0) {
+          setActiveSessions(activeRes.data);
         } else {
           setActiveSessions([]);
         }

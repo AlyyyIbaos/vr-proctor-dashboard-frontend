@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api"; // make sure this exists
+import api from "../api";
 import logo from "../assets/synapsee-logo.png";
 
 export default function Login() {
@@ -51,8 +51,12 @@ export default function Login() {
       localStorage.setItem("user_role", data.role);
       localStorage.setItem("full_name", data.full_name);
 
-      // 🚀 REDIRECT
-      navigate("/student");
+      // 🚀 ROLE-BASED REDIRECT
+      if (data.role === "proctor") {
+        navigate("/proctor");
+      } else {
+        navigate("/student");
+      }
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || "Invalid or expired OTP.");
@@ -68,15 +72,13 @@ export default function Login() {
         <div className="h-14 border-b flex items-center px-6 gap-3">
           <img src={logo} alt="SynapSee Logo" className="w-8 h-8" />
           <h1 className="text-lg font-semibold text-gray-800">
-            Student Authentication
+            SynapSee Authentication
           </h1>
         </div>
 
         {/* CONTENT */}
         <div className="p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-pup-maroon">
-            Student Login
-          </h2>
+          <h2 className="text-xl font-semibold text-pup-maroon">Login</h2>
 
           {/* EMAIL INPUT */}
           <input
@@ -98,7 +100,7 @@ export default function Login() {
             </button>
           )}
 
-          {/* OTP INPUT (only after sending OTP) */}
+          {/* OTP INPUT */}
           {otpSent && (
             <>
               <input
@@ -118,10 +120,10 @@ export default function Login() {
             </>
           )}
 
-          {/* ERROR MESSAGE */}
+          {/* ERROR */}
           {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
-          {/* REGISTER LINK */}
+          {/* REGISTER LINK (Student Only) */}
           <p
             className="text-sm text-center text-pup-maroon cursor-pointer hover:underline"
             onClick={() => navigate("/register")}

@@ -8,6 +8,8 @@ import ExamineePage from "./pages/ExamineePage";
 import StudentDashboardPage from "./pages/StudentDashboardPage";
 import StudentSessionReportPage from "./pages/StudentSessionReportPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ProctorDashboardPage from "./pages/ProctorDashboardPage";
+import ProctorSessionLivePage from "./pages/ProctorSessionLivePage";
 
 function App() {
   return (
@@ -21,18 +23,33 @@ function App() {
         <Route
           path="/student"
           element={
-            <ProtectedRoute>
-              {" "}
-              <StudentDashboardPage />{" "}
+            <ProtectedRoute requiredRole="student">
+              <StudentDashboardPage />
             </ProtectedRoute>
           }
         />
         <Route
           path="/student/session/:sessionId"
           element={
-            <ProtectedRoute>
-              {" "}
-              <StudentSessionReportPage />{" "}
+            <ProtectedRoute requiredRole="student">
+              <StudentSessionReportPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/proctor"
+          element={
+            <ProtectedRoute requiredRole="proctor">
+              <ProctorDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/proctor/session/:sessionId"
+          element={
+            <ProtectedRoute requiredRole="proctor">
+              <ProctorSessionLivePage />
             </ProtectedRoute>
           }
         />
