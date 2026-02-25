@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React from "react";
 import logo from "../assets/synapsee-logo.png";
 
 export default function StudentDashboardPage() {
