@@ -1,4 +1,4 @@
-import StudentLayout from "../component/layout/StudentLayout";
+import StudentLayout from "../components/layout/StudentLayout";
 
 export default function StudentProfilePage() {
   const fullName = localStorage.getItem("full_name") || "—";
