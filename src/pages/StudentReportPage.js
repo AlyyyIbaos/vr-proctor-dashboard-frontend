@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import StudentLayout from "../layout/StudentLayout";
+import StudentLayout from "../component/layout/StudentLayout";
 
 export default function StudentReportPage() {
   const { sessionId } = useParams();
