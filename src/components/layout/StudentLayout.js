@@ -25,7 +25,12 @@ export default function StudentLayout({ children }) {
 
         {/* RIGHT */}
         <div className="flex items-center gap-6 text-sm">
-          <span className="text-gray-600">Student</span>
+          <span
+            onClick={() => (window.location.href = "/student/profile")}
+            className="text-gray-600 cursor-pointer hover:text-pup-maroon transition"
+          >
+            Profile
+          </span>
 
           <button
             onClick={handleLogout}
