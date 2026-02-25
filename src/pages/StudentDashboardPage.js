@@ -1,69 +1,45 @@
-import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../api";
+import { useState } from "react";
 import logo from "../assets/synapsee-logo.png";
 
 export default function StudentDashboardPage() {
-  const navigate = useNavigate();
+  const fullName = "Alyssa";
 
-  const [activeSessions, setActiveSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // ===============================
+  // MOCK DATA (THESIS DEMO MODE)
+  // ===============================
+  const mockReport = {
+    exam_title: "Artificial Intelligence Midterm Exam",
+    score: 18,
+    max_score: 20,
+    status: "completed",
+    final_label: "cheating", // or "normal"
 
-  const fullName = localStorage.getItem("full_name");
+    behavior_summary: [
+      { question: 1, label: "suspicious" },
+      { question: 2, label: "normal" },
+      { question: 3, label: "normal" },
+      { question: 4, label: "suspicious" },
+      { question: 5, label: "normal" },
+      { question: 6, label: "normal" },
+      { question: 7, label: "suspicious" },
+      { question: 8, label: "normal" },
+      { question: 9, label: "normal" },
+      { question: 10, label: "suspicious" },
+    ],
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem("exam_token");
-    localStorage.removeItem("user_role");
-    localStorage.removeItem("full_name");
-    navigate("/");
-  }, [navigate]);
-
-  useEffect(() => {
-    const token = localStorage.getItem("exam_token");
-
-    if (!token) {
-      navigate("/");
-      return;
-    }
-
-    const fetchData = async () => {
-      try {
-        const activeRes = await api.get("/sessions/active");
-        setActiveSessions(activeRes.data || []);
-      } catch (err) {
-        console.error("STUDENT DASHBOARD ERROR:", err);
-
-        if (err.response?.status === 401) {
-          handleLogout();
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [navigate, handleLogout]);
-
-  const handleStartExam = async () => {
-    try {
-      await api.post("/sessions/start");
-      alert("Exam session created. You may now launch the VR device.");
-      window.location.reload();
-    } catch (err) {
-      alert(err.response?.data?.error || "Failed to start exam.");
-    }
+    runtime_flags: [
+      { type: "Scene Tampering", question: 4 },
+      { type: "Object Whitelisting Violation", question: 7 },
+    ],
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading dashboard...
-      </div>
-    );
-  }
+  const suspiciousCount = mockReport.behavior_summary.filter(
+    (q) => q.label === "suspicious",
+  ).length;
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* HEADER */}
       <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <img src={logo} alt="SynapSee Logo" className="w-8 h-8" />
@@ -72,87 +48,115 @@ export default function StudentDashboardPage() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-4">
-          <span className="text-gray-600">{fullName}</span>
-          <button
-            onClick={handleLogout}
-            className="bg-pup-maroon text-white px-4 py-2 rounded hover:bg-pup-goldDark transition"
-          >
-            Logout
-          </button>
-        </div>
+        <span className="text-gray-600">{fullName}</span>
       </div>
 
-      <div className="p-8">
-        <h2 className="text-3xl font-bold text-pup-maroon mb-4">
-          Your Exam & Monitoring Overview
+      <div className="p-8 space-y-10">
+        <h2 className="text-3xl font-bold text-pup-maroon">
+          Exam Monitoring Report
         </h2>
 
-        <p className="text-gray-600 mb-8">
-          SynapSee ensures fair and secure virtual examinations through
-          AI-powered behavioral analysis and runtime integrity monitoring.
-        </p>
+        {/* ============================= */}
+        {/* ACADEMIC SUMMARY */}
+        {/* ============================= */}
+        <div className="bg-white p-6 rounded shadow">
+          <h3 className="text-xl font-semibold mb-4">Academic Summary</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded shadow">
-            <h3 className="font-semibold mb-2">Academic Summary</h3>
-            <p>
-              Status:{" "}
-              {activeSessions.length > 0
-                ? "Active Session"
-                : "No Active Session"}
-            </p>
+          <p>
+            <strong>Exam:</strong> {mockReport.exam_title}
+          </p>
+          <p>
+            <strong>Score:</strong> {mockReport.score} / {mockReport.max_score}
+          </p>
+          <p>
+            <strong>Status:</strong> {mockReport.status}
+          </p>
+          <p>
+            <strong>Final Behavior Label:</strong>{" "}
+            {mockReport.final_label === "cheating" ? (
+              <span className="text-red-600 font-bold">Cheating</span>
+            ) : (
+              <span className="text-green-600 font-bold">Normal</span>
+            )}
+          </p>
+        </div>
+
+        {/* ============================= */}
+        {/* MONITORED BEHAVIOR */}
+        {/* ============================= */}
+        <div className="bg-white p-6 rounded shadow">
+          <h3 className="text-xl font-semibold mb-4">
+            Monitored Behavior (CNN-LSTM + CAT)
+          </h3>
+
+          <table className="w-full border">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border p-2">Question</th>
+                <th className="border p-2">Behavior</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mockReport.behavior_summary.map((item, index) => (
+                <tr key={index}>
+                  <td className="border p-2">Q{item.question}</td>
+                  <td
+                    className={`border p-2 ${
+                      item.label === "suspicious"
+                        ? "text-red-600 font-semibold"
+                        : "text-green-600"
+                    }`}
+                  >
+                    {item.label}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="mt-4">
+            <strong>Total Suspicious Flags:</strong> {suspiciousCount}
           </div>
 
-          <div className="bg-white p-6 rounded shadow">
-            <h3 className="font-semibold mb-2">Behavioral Monitoring</h3>
-            <p>
-              Risk Level:{" "}
-              {activeSessions.length > 0 ? activeSessions[0].risk_level : "low"}
-            </p>
-            <p className="text-sm text-gray-500">
-              Based on CNN–LSTM + CAT aggregation
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded shadow">
-            <h3 className="font-semibold mb-2">Runtime Security</h3>
-            <p>Integrity Monitoring Active</p>
+          <div>
+            <strong>Overall Behavior:</strong>{" "}
+            {mockReport.final_label === "cheating" ? (
+              <span className="text-red-600 font-bold">Cheating</span>
+            ) : (
+              <span className="text-green-600 font-bold">Normal</span>
+            )}
           </div>
         </div>
 
-        {activeSessions.length === 0 && (
-          <button
-            onClick={handleStartExam}
-            className="mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-          >
-            Start Live Exam
-          </button>
-        )}
+        {/* ============================= */}
+        {/* RUNTIME SECURITY */}
+        {/* ============================= */}
+        <div className="bg-white p-6 rounded shadow">
+          <h3 className="text-xl font-semibold mb-4">
+            Monitored Runtime Security
+          </h3>
 
-        {activeSessions.length === 0 ? (
-          <p>No active sessions found.</p>
-        ) : (
-          activeSessions.map((session) => (
-            <div
-              key={session.id}
-              className="border p-4 rounded mb-4 flex justify-between items-center bg-white"
-            >
-              <div>
-                <p className="font-semibold">{session.exams?.title}</p>
-                <p>Status: {session.status}</p>
-                <p>Risk Level: {session.risk_level}</p>
-              </div>
-
-              <button
-                onClick={() => navigate(`/student/session/${session.id}`)}
-                className="bg-pup-maroon text-white px-4 py-2 rounded hover:bg-pup-goldDark transition"
-              >
-                View
-              </button>
-            </div>
-          ))
-        )}
+          {mockReport.runtime_flags.length === 0 ? (
+            <p>No integrity violations detected.</p>
+          ) : (
+            <table className="w-full border">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border p-2">Type</th>
+                  <th className="border p-2">Question</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockReport.runtime_flags.map((flag, index) => (
+                  <tr key={index}>
+                    <td className="border p-2">{flag.type}</td>
+                    <td className="border p-2">Q{flag.question}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   );
