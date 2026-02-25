@@ -7,8 +7,6 @@ export default function StudentDashboardPage() {
   const navigate = useNavigate();
 
   const [activeSessions, setActiveSessions] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
 
   const fullName = localStorage.getItem("full_name");
@@ -31,10 +29,7 @@ export default function StudentDashboardPage() {
     const fetchData = async () => {
       try {
         const activeRes = await api.get("/sessions/active");
-        const historyRes = await api.get("/sessions/student/history");
-
         setActiveSessions(activeRes.data || []);
-        setHistory(historyRes.data || []);
       } catch (err) {
         console.error("STUDENT DASHBOARD ERROR:", err);
 
