@@ -33,13 +33,8 @@ export default function StudentDashboardPage() {
         const activeRes = await api.get("/sessions/active");
         const historyRes = await api.get("/sessions/student/history");
 
-        if (Array.isArray(activeRes.data) && activeRes.data.length > 0) {
-          setActiveSessions(activeRes.data);
-        } else {
-          setActiveSessions([]);
-        }
-
-        setHistory(historyRes.data);
+        setActiveSessions(activeRes.data || []);
+        setHistory(historyRes.data || []);
       } catch (err) {
         console.error("STUDENT DASHBOARD ERROR:", err);
 
@@ -74,7 +69,6 @@ export default function StudentDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* HEADER */}
       <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <img src={logo} alt="SynapSee Logo" className="w-8 h-8" />
@@ -94,7 +88,6 @@ export default function StudentDashboardPage() {
         </div>
       </div>
 
-      {/* CONTENT */}
       <div className="p-8">
         <h2 className="text-3xl font-bold text-pup-maroon mb-4">
           Your Exam & Monitoring Overview
@@ -105,7 +98,6 @@ export default function StudentDashboardPage() {
           AI-powered behavioral analysis and runtime integrity monitoring.
         </p>
 
-        {/* SUMMARY CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded shadow">
             <h3 className="font-semibold mb-2">Academic Summary</h3>
@@ -134,92 +126,37 @@ export default function StudentDashboardPage() {
           </div>
         </div>
 
-        {/* TABS */}
-        <div className="flex gap-6 border-b mb-6">
+        {activeSessions.length === 0 && (
           <button
-            className={`pb-2 ${
-              activeTab === "overview"
-                ? "border-b-2 border-pup-maroon text-pup-maroon"
-                : ""
-            }`}
-            onClick={() => setActiveTab("overview")}
+            onClick={handleStartExam}
+            className="mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
           >
-            Overview
+            Start Live Exam
           </button>
-
-          <button
-            className={`pb-2 ${
-              activeTab === "history"
-                ? "border-b-2 border-pup-maroon text-pup-maroon"
-                : ""
-            }`}
-            onClick={() => setActiveTab("history")}
-          >
-            Exam History
-          </button>
-        </div>
-
-        {/* OVERVIEW TAB */}
-        {activeTab === "overview" && (
-          <div className="bg-white rounded shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Active Sessions</h3>
-
-            {/* 🔥 START EXAM BUTTON (ONLY IF NO ACTIVE SESSION) */}
-            {activeSessions.length === 0 && (
-              <button
-                onClick={handleStartExam}
-                className="mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-              >
-                Start Live Exam
-              </button>
-            )}
-
-            {activeSessions.length === 0 ? (
-              <p>No active sessions found.</p>
-            ) : (
-              activeSessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="border p-4 rounded mb-4 flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-semibold">{session.exams?.title}</p>
-                    <p>Status: {session.status}</p>
-                    <p>Risk Level: {session.risk_level}</p>
-                  </div>
-
-                  <button
-                    onClick={() => navigate(`/student/session/${session.id}`)}
-                    className="bg-pup-maroon text-white px-4 py-2 rounded hover:bg-pup-goldDark transition"
-                  >
-                    View
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
         )}
 
-        {/* HISTORY TAB */}
-        {activeTab === "history" && (
-          <div className="bg-white rounded shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Exam History</h3>
+        {activeSessions.length === 0 ? (
+          <p>No active sessions found.</p>
+        ) : (
+          activeSessions.map((session) => (
+            <div
+              key={session.id}
+              className="border p-4 rounded mb-4 flex justify-between items-center bg-white"
+            >
+              <div>
+                <p className="font-semibold">{session.exams?.title}</p>
+                <p>Status: {session.status}</p>
+                <p>Risk Level: {session.risk_level}</p>
+              </div>
 
-            {history.length === 0 ? (
-              <p>No past exams found.</p>
-            ) : (
-              history.map((session) => (
-                <div key={session.id} className="border p-4 rounded mb-4">
-                  <p className="font-semibold">{session.exam_title}</p>
-                  <p>Status: {session.status}</p>
-                  <p>
-                    Score: {session.score} / {session.max_score}
-                  </p>
-                  <p>Final Label: {session.final_label || "Pending"}</p>
-                </div>
-              ))
-            )}
-          </div>
+              <button
+                onClick={() => navigate(`/student/session/${session.id}`)}
+                className="bg-pup-maroon text-white px-4 py-2 rounded hover:bg-pup-goldDark transition"
+              >
+                View
+              </button>
+            </div>
+          ))
         )}
       </div>
     </div>
