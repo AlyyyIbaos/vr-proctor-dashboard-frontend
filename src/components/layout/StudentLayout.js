@@ -2,6 +2,13 @@ import { LogOut } from "lucide-react";
 import logo from "../../assets/synapsee-logo.png";
 
 export default function StudentLayout({ children }) {
+  const role = localStorage.getItem("user_role");
+
+  const portalTitle =
+    role === "proctor" ? "SynapSee Proctor Portal" : "SynapSee Student Portal";
+
+  const profileRoute = role === "proctor" ? "/proctor" : "/student/profile";
+
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = "/";
@@ -19,14 +26,14 @@ export default function StudentLayout({ children }) {
             className="w-8 h-8 object-contain"
           />
           <h1 className="text-lg font-semibold text-pup-maroon">
-            SynapSee Student Portal
+            {portalTitle}
           </h1>
         </div>
 
         {/* RIGHT */}
         <div className="flex items-center gap-6 text-sm">
           <span
-            onClick={() => (window.location.href = "/student/profile")}
+            onClick={() => (window.location.href = profileRoute)}
             className="text-gray-600 cursor-pointer hover:text-pup-maroon transition"
           >
             Profile

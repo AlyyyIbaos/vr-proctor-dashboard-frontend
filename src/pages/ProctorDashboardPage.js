@@ -66,7 +66,7 @@ export default function ProctorDashboardPage() {
     return "border-green-600";
   };
 
-  // ================= SORT STUDENTS BY RISK =================
+  // ================= SORT BY HIGHEST RISK =================
   const sortedStudents = useMemo(() => {
     return [...mockStudents].sort((a, b) => b.prob_cheat - a.prob_cheat);
   }, []);
@@ -162,7 +162,7 @@ export default function ProctorDashboardPage() {
             })}
           </div>
 
-          {/* RIGHT PANEL — LIVE SESSION DETAILS */}
+          {/* RIGHT PANEL — SESSION DETAILS */}
           <div className="col-span-3 bg-white shadow rounded p-6 space-y-6">
             {!selectedStudent && (
               <p className="text-gray-500">
@@ -187,7 +187,7 @@ export default function ProctorDashboardPage() {
                   </p>
                 </div>
 
-                {/* Behavioral Window Logs */}
+                {/* Behavioral Logs */}
                 <div>
                   <h3 className="font-semibold mb-3">Behavioral Window Logs</h3>
 
@@ -215,65 +215,58 @@ export default function ProctorDashboardPage() {
                   ))}
                 </div>
 
-                {/* ================= RUNTIME SECURITY ALERTS ================= */}
+                {/* Suspicious Total (AFTER logs) */}
+                <div>
+                  <p>
+                    Suspicious Total:{" "}
+                    <span className="font-semibold">{suspiciousCount}</span>
+                  </p>
+                </div>
+
+                {/* Runtime Security Alerts */}
                 <div>
                   <h3 className="font-semibold mb-3">
                     Runtime Security Alerts
                   </h3>
 
-                  {mockRuntimeAlerts.length === 0 ? (
-                    <p className="text-gray-500 text-sm">
-                      No runtime violations detected.
-                    </p>
-                  ) : (
-                    mockRuntimeAlerts.map((alert) => (
-                      <div
-                        key={alert.id}
-                        className={`border-l-4 rounded p-3 mb-3 text-sm shadow-sm ${
-                          alert.severity === "HIGH"
-                            ? "border-red-600 bg-red-50"
-                            : alert.severity === "MEDIUM"
-                              ? "border-yellow-500 bg-yellow-50"
-                              : "border-green-600 bg-green-50"
-                        }`}
-                      >
-                        <div className="flex justify-between">
-                          <span className="font-semibold">{alert.type}</span>
+                  {mockRuntimeAlerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className={`border-l-4 rounded p-3 mb-3 text-sm shadow-sm ${
+                        alert.severity === "HIGH"
+                          ? "border-red-600 bg-red-50"
+                          : "border-yellow-500 bg-yellow-50"
+                      }`}
+                    >
+                      <div className="flex justify-between">
+                        <span className="font-semibold">{alert.type}</span>
 
-                          <span
-                            className={`font-semibold ${
-                              alert.severity === "HIGH"
-                                ? "text-red-600"
-                                : alert.severity === "MEDIUM"
-                                  ? "text-yellow-600"
-                                  : "text-green-600"
-                            }`}
-                          >
-                            {alert.severity}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between mt-1 text-gray-600">
-                          <span>
-                            Confidence: {(alert.confidence * 100).toFixed(1)}%
-                          </span>
-
-                          <span>
-                            {new Date(alert.timestamp).toLocaleTimeString()}
-                          </span>
-                        </div>
+                        <span
+                          className={`font-semibold ${
+                            alert.severity === "HIGH"
+                              ? "text-red-600"
+                              : "text-yellow-600"
+                          }`}
+                        >
+                          {alert.severity}
+                        </span>
                       </div>
-                    ))
-                  )}
+
+                      <div className="flex justify-between mt-1 text-gray-600">
+                        <span>
+                          Confidence: {(alert.confidence * 100).toFixed(1)}%
+                        </span>
+
+                        <span>
+                          {new Date(alert.timestamp).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Final Decision */}
+                {/* Final Behavior (LAST) */}
                 <div className="border-t pt-4">
-                  <p>
-                    Suspicious Total:{" "}
-                    <span className="font-semibold">{suspiciousCount}</span>
-                  </p>
-
                   <p
                     className={`font-bold ${
                       finalBehavior === "CHEATING"
