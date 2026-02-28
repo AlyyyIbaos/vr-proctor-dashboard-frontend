@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import StudentLayout from "../components/layout/StudentLayout";
 
-// 🔹 MOCK STUDENTS FOR UI TESTING
+// 🔹 MOCK STUDENTS (UI ONLY)
 const mockStudents = [
   {
     id: "session-001",
@@ -41,7 +41,7 @@ export default function ProctorDashboardPage() {
     return "LOW";
   };
 
-  const riskColor = (prob) => {
+  const riskBorder = (prob) => {
     if (prob > 0.8) return "border-red-600";
     if (prob > 0.5) return "border-yellow-500";
     return "border-green-600";
@@ -51,6 +51,17 @@ export default function ProctorDashboardPage() {
     return [...mockStudents].sort((a, b) => b.prob_cheat - a.prob_cheat);
   }, []);
 
+  const total = sortedStudents.length;
+  const high = sortedStudents.filter(
+    (s) => classifyRisk(s.prob_cheat) === "HIGH",
+  ).length;
+  const medium = sortedStudents.filter(
+    (s) => classifyRisk(s.prob_cheat) === "MEDIUM",
+  ).length;
+  const low = sortedStudents.filter(
+    (s) => classifyRisk(s.prob_cheat) === "LOW",
+  ).length;
+
   const suspiciousCount = mockBehavioralLogs.filter(
     (log) => log.label === "suspicious",
   ).length;
@@ -59,116 +70,149 @@ export default function ProctorDashboardPage() {
 
   return (
     <StudentLayout>
-      <div className="max-w-7xl mx-auto p-6 grid grid-cols-4 gap-6">
-        {/* LEFT PANEL — STUDENT QUEUE */}
-        <div className="col-span-1 bg-white shadow rounded p-4">
-          <h2 className="font-semibold mb-4">Active Monitoring Queue</h2>
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* ================= SUMMARY STRIP ================= */}
+        <div className="grid grid-cols-5 gap-4">
+          <div className="bg-white shadow rounded p-4">
+            <p className="text-xs text-gray-500">Active Sessions</p>
+            <p className="text-xl font-bold">{total}</p>
+          </div>
 
-          {sortedStudents.map((student) => {
-            const risk = classifyRisk(student.prob_cheat);
+          <div className="bg-white shadow rounded p-4">
+            <p className="text-xs text-gray-500">High Risk</p>
+            <p className="text-xl font-bold text-red-600">{high}</p>
+          </div>
 
-            return (
-              <div
-                key={student.id}
-                onClick={() => setSelectedStudent(student)}
-                className={`border-2 rounded p-3 mb-3 cursor-pointer transition hover:shadow ${riskColor(
-                  student.prob_cheat,
-                )} ${selectedStudent?.id === student.id ? "bg-gray-100" : ""}`}
-              >
-                <p className="font-semibold text-sm">{student.name}</p>
+          <div className="bg-white shadow rounded p-4">
+            <p className="text-xs text-gray-500">Medium Risk</p>
+            <p className="text-xl font-bold text-yellow-600">{medium}</p>
+          </div>
 
-                <p className="text-xs text-gray-600">
-                  Risk Score: {(student.prob_cheat * 100).toFixed(1)}%
-                </p>
+          <div className="bg-white shadow rounded p-4">
+            <p className="text-xs text-gray-500">Low Risk</p>
+            <p className="text-xl font-bold text-green-600">{low}</p>
+          </div>
 
-                <p
-                  className={`text-xs font-semibold ${
-                    risk === "HIGH"
-                      ? "text-red-600"
-                      : risk === "MEDIUM"
-                        ? "text-yellow-600"
-                        : "text-green-600"
-                  }`}
-                >
-                  {risk}
-                </p>
-              </div>
-            );
-          })}
+          <div className="bg-white shadow rounded p-4">
+            <p className="text-xs text-gray-500">System Status</p>
+            <p className="text-green-600 font-semibold">Operational</p>
+          </div>
         </div>
 
-        {/* RIGHT PANEL — LIVE DETAILS */}
-        <div className="col-span-3 bg-white shadow rounded p-6 space-y-6">
-          {!selectedStudent && (
-            <p className="text-gray-500">
-              Select a student to inspect behavioral logs.
-            </p>
-          )}
+        {/* ================= MAIN MONITORING GRID ================= */}
+        <div className="grid grid-cols-4 gap-6">
+          {/* LEFT PANEL — STUDENT QUEUE */}
+          <div className="col-span-1 bg-white shadow rounded p-4">
+            <h2 className="font-semibold mb-4">Monitoring Queue</h2>
 
-          {selectedStudent && (
-            <>
-              {/* Risk Overview */}
-              <div>
-                <h2 className="text-lg font-semibold mb-2">
-                  {selectedStudent.name}
-                </h2>
+            {sortedStudents.map((student) => {
+              const risk = classifyRisk(student.prob_cheat);
 
-                <p className="text-3xl font-bold">
-                  {(selectedStudent.prob_cheat * 100).toFixed(2)}%
-                </p>
-
-                <p className="text-sm text-gray-600">
-                  Classification: {classifyRisk(selectedStudent.prob_cheat)}
-                </p>
-              </div>
-
-              {/* Behavioral Logs */}
-              <div>
-                <h3 className="font-semibold mb-3">Behavioral Window Logs</h3>
-
-                {mockBehavioralLogs.map((log, index) => (
-                  <div
-                    key={index}
-                    className="border rounded p-2 mb-2 flex justify-between text-sm"
-                  >
-                    <span>Window {log.window}</span>
-
-                    <span
-                      className={
-                        log.label === "suspicious"
-                          ? "text-red-600 font-semibold"
-                          : "text-green-600"
-                      }
-                    >
-                      {log.label.toUpperCase()}
-                    </span>
-
-                    <span className="text-gray-500">
-                      {new Date(log.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Final Decision */}
-              <div className="border-t pt-4">
-                <p>
-                  Suspicious Total:{" "}
-                  <span className="font-semibold">{suspiciousCount}</span>
-                </p>
-
-                <p
-                  className={`font-bold ${
-                    finalBehavior === "CHEATING"
-                      ? "text-red-600"
-                      : "text-green-600"
+              return (
+                <div
+                  key={student.id}
+                  onClick={() => setSelectedStudent(student)}
+                  className={`border-2 rounded p-3 mb-3 cursor-pointer transition hover:shadow ${riskBorder(
+                    student.prob_cheat,
+                  )} ${
+                    selectedStudent?.id === student.id ? "bg-gray-100" : ""
                   }`}
                 >
-                  Final Behavior: {finalBehavior}
-                </p>
-              </div>
-            </>
-          )}
+                  <p className="font-semibold text-sm">{student.name}</p>
+
+                  <p className="text-xs text-gray-600">
+                    Risk Score: {(student.prob_cheat * 100).toFixed(1)}%
+                  </p>
+
+                  <p
+                    className={`text-xs font-semibold ${
+                      risk === "HIGH"
+                        ? "text-red-600"
+                        : risk === "MEDIUM"
+                          ? "text-yellow-600"
+                          : "text-green-600"
+                    }`}
+                  >
+                    {risk}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* RIGHT PANEL — LIVE SESSION DETAILS */}
+          <div className="col-span-3 bg-white shadow rounded p-6 space-y-6">
+            {!selectedStudent && (
+              <p className="text-gray-500">
+                Select a student to inspect behavioral logs.
+              </p>
+            )}
+
+            {selectedStudent && (
+              <>
+                {/* Risk Overview */}
+                <div>
+                  <h2 className="text-lg font-semibold mb-2">
+                    {selectedStudent.name}
+                  </h2>
+
+                  <p className="text-3xl font-bold">
+                    {(selectedStudent.prob_cheat * 100).toFixed(2)}%
+                  </p>
+
+                  <p className="text-sm text-gray-600">
+                    Classification: {classifyRisk(selectedStudent.prob_cheat)}
+                  </p>
+                </div>
+
+                {/* Behavioral Logs */}
+                <div>
+                  <h3 className="font-semibold mb-3">Behavioral Window Logs</h3>
+
+                  {mockBehavioralLogs.map((log, index) => (
+                    <div
+                      key={index}
+                      className="border rounded p-2 mb-2 flex justify-between text-sm"
+                    >
+                      <span>Window {log.window}</span>
+
+                      <span
+                        className={
+                          log.label === "suspicious"
+                            ? "text-red-600 font-semibold"
+                            : "text-green-600"
+                        }
+                      >
+                        {log.label.toUpperCase()}
+                      </span>
+
+                      <span className="text-gray-500">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Final Decision */}
+                <div className="border-t pt-4">
+                  <p>
+                    Suspicious Total:{" "}
+                    <span className="font-semibold">{suspiciousCount}</span>
+                  </p>
+
+                  <p
+                    className={`font-bold ${
+                      finalBehavior === "CHEATING"
+                        ? "text-red-600"
+                        : "text-green-600"
+                    }`}
+                  >
+                    Final Behavior: {finalBehavior}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </StudentLayout>
