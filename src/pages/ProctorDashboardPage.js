@@ -4,6 +4,29 @@ import StudentLayout from "../components/layout/StudentLayout";
 
 const socket = io("https://vr-proctor-dashboard-backend.onrender.com");
 
+// 🔹 MOCK STUDENTS FOR UI TESTING
+const mockStudents = [
+  {
+    id: "session-001",
+    name: "Alyssa Cruz",
+    prob_cheat: 0.78,
+    status: "Active",
+  },
+  {
+    id: "session-002",
+    name: "John Reyes",
+    prob_cheat: 0.32,
+    status: "Active",
+  },
+  {
+    id: "session-003",
+    name: "Maria Santos",
+    prob_cheat: 0.91,
+    status: "Flagged",
+  },
+];
+
+// 🔹 MOCK BEHAVIORAL LOGS
 const mockBehavioralLogs = [
   { window: 1, label: "normal", timestamp: new Date().toISOString() },
   { window: 2, label: "suspicious", timestamp: new Date().toISOString() },
@@ -14,32 +37,19 @@ const mockBehavioralLogs = [
 
 export default function ProctorDashboardPage() {
   const [sessions, setSessions] = useState({});
-  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
+  // 🔹 SOCKET LISTENER (kept intact)
   useEffect(() => {
     socket.on("live_status", (data) => {
       setSessions((prev) => ({
         ...prev,
-        [data.session_id]: {
-          ...(prev[data.session_id] || { alerts: [] }),
-          ...data,
-        },
-      }));
-    });
-
-    socket.on("new_alert", (alert) => {
-      setSessions((prev) => ({
-        ...prev,
-        [alert.session_id]: {
-          ...(prev[alert.session_id] || { alerts: [] }),
-          alerts: [...(prev[alert.session_id]?.alerts || []), alert],
-        },
+        [data.session_id]: data,
       }));
     });
 
     return () => {
       socket.off("live_status");
-      socket.off("new_alert");
     };
   }, []);
 
@@ -49,9 +59,15 @@ export default function ProctorDashboardPage() {
     return "LOW";
   };
 
-  const sortedSessions = useMemo(() => {
-    return Object.entries(sessions);
-  }, [sessions]);
+  const riskColor = (prob) => {
+    if (prob > 0.8) return "border-red-600";
+    if (prob > 0.5) return "border-yellow-500";
+    return "border-green-600";
+  };
+
+  const sortedStudents = useMemo(() => {
+    return [...mockStudents].sort((a, b) => b.prob_cheat - a.prob_cheat);
+  }, []);
 
   const suspiciousCount = mockBehavioralLogs.filter(
     (log) => log.label === "suspicious",
@@ -61,97 +77,117 @@ export default function ProctorDashboardPage() {
 
   return (
     <StudentLayout>
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        <h1 className="text-2xl font-bold">SynapSee Proctor Dashboard</h1>
+      <div className="max-w-7xl mx-auto p-6 grid grid-cols-4 gap-6">
+        {/* LEFT PANEL — STUDENT QUEUE */}
+        <div className="col-span-1 bg-white shadow rounded p-4">
+          <h2 className="font-semibold mb-4">Active Monitoring Queue</h2>
 
-        {/* TAB NAVIGATION */}
-        <div className="flex gap-4 border-b pb-2">
-          {["overview", "live", "credentials"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-t ${
-                activeTab === tab
-                  ? "bg-white shadow font-semibold"
-                  : "text-gray-500"
-              }`}
-            >
-              {tab.toUpperCase()}
-            </button>
-          ))}
+          {sortedStudents.map((student) => {
+            const risk = classifyRisk(student.prob_cheat);
+
+            return (
+              <div
+                key={student.id}
+                onClick={() => setSelectedStudent(student)}
+                className={`border-2 rounded p-3 mb-3 cursor-pointer transition hover:shadow ${riskColor(
+                  student.prob_cheat,
+                )} ${selectedStudent?.id === student.id ? "bg-gray-100" : ""}`}
+              >
+                <p className="font-semibold text-sm">{student.name}</p>
+
+                <p className="text-xs text-gray-600">
+                  Risk Score: {(student.prob_cheat * 100).toFixed(1)}%
+                </p>
+
+                <p
+                  className={`text-xs font-semibold ${
+                    risk === "HIGH"
+                      ? "text-red-600"
+                      : risk === "MEDIUM"
+                        ? "text-yellow-600"
+                        : "text-green-600"
+                  }`}
+                >
+                  {risk}
+                </p>
+              </div>
+            );
+          })}
         </div>
 
-        {/* OVERVIEW */}
-        {activeTab === "overview" && (
-          <div className="bg-white shadow rounded p-6 space-y-2">
-            <p>Total Active Sessions: {sortedSessions.length}</p>
-            <p>
-              Flagged Sessions:{" "}
-              {
-                sortedSessions.filter(
-                  ([, s]) => classifyRisk(s?.prob_cheat || 0) === "HIGH",
-                ).length
-              }
+        {/* RIGHT PANEL — LIVE DETAILS */}
+        <div className="col-span-3 bg-white shadow rounded p-6 space-y-6">
+          {!selectedStudent && (
+            <p className="text-gray-500">
+              Select a student to inspect behavioral logs.
             </p>
-            <p className="text-green-600 font-semibold">
-              System Status: Operational
-            </p>
-          </div>
-        )}
+          )}
 
-        {/* LIVE SESSION */}
-        {activeTab === "live" && (
-          <div className="bg-white shadow rounded p-6 space-y-4">
-            <h2 className="font-semibold">Behavioral Logs (Mock Data)</h2>
+          {selectedStudent && (
+            <>
+              {/* Risk Overview */}
+              <div>
+                <h2 className="text-lg font-semibold mb-2">
+                  {selectedStudent.name}
+                </h2>
 
-            {mockBehavioralLogs.map((log, index) => (
-              <div
-                key={index}
-                className="border rounded p-2 flex justify-between text-sm"
-              >
-                <span>Window {log.window}</span>
+                <p className="text-3xl font-bold">
+                  {(selectedStudent.prob_cheat * 100).toFixed(2)}%
+                </p>
 
-                <span
-                  className={
-                    log.label === "suspicious"
-                      ? "text-red-600 font-semibold"
-                      : "text-green-600"
-                  }
-                >
-                  {log.label.toUpperCase()}
-                </span>
-
-                <span className="text-gray-500">
-                  {new Date(log.timestamp).toLocaleTimeString()}
-                </span>
+                <p className="text-sm text-gray-600">
+                  Classification: {classifyRisk(selectedStudent.prob_cheat)}
+                </p>
               </div>
-            ))}
 
-            <div className="pt-3 border-t">
-              <p>Suspicious Total: {suspiciousCount}</p>
-              <p
-                className={
-                  finalBehavior === "CHEATING"
-                    ? "text-red-600 font-bold"
-                    : "text-green-600 font-bold"
-                }
-              >
-                Final Behavior: {finalBehavior}
-              </p>
-            </div>
-          </div>
-        )}
+              {/* Behavioral Logs */}
+              <div>
+                <h3 className="font-semibold mb-3">Behavioral Window Logs</h3>
 
-        {/* CREDENTIALS */}
-        {activeTab === "credentials" && (
-          <div className="bg-white shadow rounded p-6 space-y-2">
-            <p>Examinee Name: Mock Student</p>
-            <p>Student Number: 2023-00001</p>
-            <p>Program: BS Computer Engineering</p>
-            <p>Year Level: 3</p>
-            <p>Status: Active</p>
-          </div>
-        )}
+                {mockBehavioralLogs.map((log, index) => (
+                  <div
+                    key={index}
+                    className="border rounded p-2 mb-2 flex justify-between text-sm"
+                  >
+                    <span>Window {log.window}</span>
+
+                    <span
+                      className={
+                        log.label === "suspicious"
+                          ? "text-red-600 font-semibold"
+                          : "text-green-600"
+                      }
+                    >
+                      {log.label.toUpperCase()}
+                    </span>
+
+                    <span className="text-gray-500">
+                      {new Date(log.timestamp).toLocaleTimeString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Final Decision */}
+              <div className="border-t pt-4">
+                <p>
+                  Suspicious Total:{" "}
+                  <span className="font-semibold">{suspiciousCount}</span>
+                </p>
+
+                <p
+                  className={`font-bold ${
+                    finalBehavior === "CHEATING"
+                      ? "text-red-600"
+                      : "text-green-600"
+                  }`}
+                >
+                  Final Behavior: {finalBehavior}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </StudentLayout>
   );
