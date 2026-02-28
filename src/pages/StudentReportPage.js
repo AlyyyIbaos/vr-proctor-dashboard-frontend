@@ -23,20 +23,17 @@ export default function StudentReportPage() {
     (b) => b.label === "suspicious",
   ).length;
 
-  // ✅ UPDATED LOGIC
-  // 0–2 suspicious → Normal
-  // 3–5 suspicious → Cheating
   const overallBehavior = suspiciousCount >= 3 ? "Cheating" : "Normal";
 
-  const runtimeViolations = [
-    { type: "Object Whitelisting Violation", question: 4 },
-    { type: "Scene Tampering", question: 10 },
-  ];
+  // =========================
+  // MOCK RUNTIME SECURITY DATA
+  // =========================
+  const objectInjectionViolations = []; // none
+  const sceneTamperingViolations = []; // none
 
   return (
     <StudentLayout>
       <div className="max-w-5xl mx-auto space-y-8">
-        {/* BACK BUTTON */}
         <button
           onClick={() => navigate("/student")}
           className="text-sm text-pup-maroon hover:underline"
@@ -82,32 +79,25 @@ export default function StudentReportPage() {
           </a>
         </div>
 
-        {/* ========================= */}
         {/* ACADEMIC TAB */}
-        {/* ========================= */}
         {activeTab === "academic" && (
           <div className="bg-white p-6 rounded shadow space-y-3">
             <p>
               <strong>Session ID:</strong> {sessionId}
             </p>
-
             <p>
               <strong>Exam Name:</strong> Pre-Test
             </p>
-
             <p>
               <strong>Score:</strong> 3 / 5
             </p>
-
             <p>
               <strong>Status:</strong> Completed
             </p>
           </div>
         )}
 
-        {/* ========================= */}
         {/* BEHAVIOR TAB */}
-        {/* ========================= */}
         {activeTab === "behavior" && (
           <div className="bg-white p-6 rounded shadow space-y-4">
             <table className="w-full border">
@@ -154,31 +144,36 @@ export default function StudentReportPage() {
           </div>
         )}
 
-        {/* ========================= */}
         {/* RUNTIME TAB */}
-        {/* ========================= */}
         {activeTab === "runtime" && (
           <div className="bg-white p-6 rounded shadow">
-            {runtimeViolations.length === 0 ? (
-              <p>No integrity violations detected.</p>
-            ) : (
-              <table className="w-full border">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="p-2 border">Type</th>
-                    <th className="p-2 border">Question</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {runtimeViolations.map((r, index) => (
-                    <tr key={index}>
-                      <td className="p-2 border">{r.type}</td>
-                      <td className="p-2 border text-center">Q{r.question}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            <table className="w-full border">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="p-2 border">Violation Type</th>
+                  <th className="p-2 border">Question</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="p-2 border">Object Injection</td>
+                  <td className="p-2 border text-center">
+                    {objectInjectionViolations.length === 0
+                      ? "None"
+                      : objectInjectionViolations.join(", ")}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="p-2 border">Scene Tampering</td>
+                  <td className="p-2 border text-center">
+                    {sceneTamperingViolations.length === 0
+                      ? "None"
+                      : sceneTamperingViolations.join(", ")}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         )}
       </div>
