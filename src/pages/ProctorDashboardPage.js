@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import StudentLayout from "../components/layout/StudentLayout";
 
-// 🔹 MOCK STUDENTS (UI ONLY)
+// ================= MOCK STUDENTS =================
 const mockStudents = [
   {
     id: "session-001",
@@ -23,7 +23,7 @@ const mockStudents = [
   },
 ];
 
-// 🔹 MOCK BEHAVIORAL LOGS
+// ================= MOCK BEHAVIORAL LOGS =================
 const mockBehavioralLogs = [
   { window: 1, label: "normal", timestamp: new Date().toISOString() },
   { window: 2, label: "suspicious", timestamp: new Date().toISOString() },
@@ -32,9 +32,28 @@ const mockBehavioralLogs = [
   { window: 5, label: "suspicious", timestamp: new Date().toISOString() },
 ];
 
+// ================= MOCK RUNTIME ALERTS =================
+const mockRuntimeAlerts = [
+  {
+    id: 1,
+    type: "Object Injection Detected",
+    severity: "HIGH",
+    confidence: 0.94,
+    timestamp: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    type: "Scene Tampering Attempt",
+    severity: "MEDIUM",
+    confidence: 0.72,
+    timestamp: new Date().toISOString(),
+  },
+];
+
 export default function ProctorDashboardPage() {
   const [selectedStudent, setSelectedStudent] = useState(null);
 
+  // ================= RISK CLASSIFICATION =================
   const classifyRisk = (prob) => {
     if (prob > 0.8) return "HIGH";
     if (prob > 0.5) return "MEDIUM";
@@ -47,10 +66,12 @@ export default function ProctorDashboardPage() {
     return "border-green-600";
   };
 
+  // ================= SORT STUDENTS BY RISK =================
   const sortedStudents = useMemo(() => {
     return [...mockStudents].sort((a, b) => b.prob_cheat - a.prob_cheat);
   }, []);
 
+  // ================= SUMMARY METRICS =================
   const total = sortedStudents.length;
   const high = sortedStudents.filter(
     (s) => classifyRisk(s.prob_cheat) === "HIGH",
@@ -62,6 +83,7 @@ export default function ProctorDashboardPage() {
     (s) => classifyRisk(s.prob_cheat) === "LOW",
   ).length;
 
+  // ================= BEHAVIOR LOGIC =================
   const suspiciousCount = mockBehavioralLogs.filter(
     (log) => log.label === "suspicious",
   ).length;
@@ -101,7 +123,7 @@ export default function ProctorDashboardPage() {
 
         {/* ================= MAIN MONITORING GRID ================= */}
         <div className="grid grid-cols-4 gap-6">
-          {/* LEFT PANEL — STUDENT QUEUE */}
+          {/* LEFT PANEL — MONITORING QUEUE */}
           <div className="col-span-1 bg-white shadow rounded p-4">
             <h2 className="font-semibold mb-4">Monitoring Queue</h2>
 
@@ -165,7 +187,7 @@ export default function ProctorDashboardPage() {
                   </p>
                 </div>
 
-                {/* Behavioral Logs */}
+                {/* Behavioral Window Logs */}
                 <div>
                   <h3 className="font-semibold mb-3">Behavioral Window Logs</h3>
 
@@ -191,6 +213,58 @@ export default function ProctorDashboardPage() {
                       </span>
                     </div>
                   ))}
+                </div>
+
+                {/* ================= RUNTIME SECURITY ALERTS ================= */}
+                <div>
+                  <h3 className="font-semibold mb-3">
+                    Runtime Security Alerts
+                  </h3>
+
+                  {mockRuntimeAlerts.length === 0 ? (
+                    <p className="text-gray-500 text-sm">
+                      No runtime violations detected.
+                    </p>
+                  ) : (
+                    mockRuntimeAlerts.map((alert) => (
+                      <div
+                        key={alert.id}
+                        className={`border-l-4 rounded p-3 mb-3 text-sm shadow-sm ${
+                          alert.severity === "HIGH"
+                            ? "border-red-600 bg-red-50"
+                            : alert.severity === "MEDIUM"
+                              ? "border-yellow-500 bg-yellow-50"
+                              : "border-green-600 bg-green-50"
+                        }`}
+                      >
+                        <div className="flex justify-between">
+                          <span className="font-semibold">{alert.type}</span>
+
+                          <span
+                            className={`font-semibold ${
+                              alert.severity === "HIGH"
+                                ? "text-red-600"
+                                : alert.severity === "MEDIUM"
+                                  ? "text-yellow-600"
+                                  : "text-green-600"
+                            }`}
+                          >
+                            {alert.severity}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between mt-1 text-gray-600">
+                          <span>
+                            Confidence: {(alert.confidence * 100).toFixed(1)}%
+                          </span>
+
+                          <span>
+                            {new Date(alert.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 {/* Final Decision */}
