@@ -1,15 +1,16 @@
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import StudentLayout from "../components/layout/StudentLayout.js";
 
 export default function StudentReportPage() {
+  const { sessionId } = useParams();
   const navigate = useNavigate();
 
   const params = new URLSearchParams(window.location.search);
   const activeTab = params.get("tab") || "academic";
 
-  // MOCK BEHAVIOR DATA
+  // MOCK BEHAVIOR DATA (Q1–Q10)
   const behaviorData = [
-    { q: 1, label: "suspicious" },
+    { q: 1, label: "normal" },
     { q: 2, label: "normal" },
     { q: 3, label: "normal" },
     { q: 4, label: "suspicious" },
@@ -23,8 +24,8 @@ export default function StudentReportPage() {
   const overallBehavior = suspiciousCount >= 3 ? "Normal" : "Cheating";
 
   const runtimeViolations = [
-    { type: "Object Whitelisting Violation", question: "None" },
-    { type: "Scene Tampering", question: "None" },
+    { type: "Object Whitelisting Violation", question: 4 },
+    { type: "Scene Tampering", question: 10 },
   ];
 
   return (
@@ -42,7 +43,7 @@ export default function StudentReportPage() {
         {/* TAB NAVIGATION */}
         <div className="flex gap-6 border-b">
           <a
-            href="?tab=academic"
+            href={`?tab=academic`}
             className={`pb-2 ${
               activeTab === "academic"
                 ? "border-b-2 border-pup-maroon text-pup-maroon"
@@ -53,7 +54,7 @@ export default function StudentReportPage() {
           </a>
 
           <a
-            href="?tab=behavior"
+            href={`?tab=behavior`}
             className={`pb-2 ${
               activeTab === "behavior"
                 ? "border-b-2 border-pup-maroon text-pup-maroon"
@@ -64,7 +65,7 @@ export default function StudentReportPage() {
           </a>
 
           <a
-            href="?tab=runtime"
+            href={`?tab=runtime`}
             className={`pb-2 ${
               activeTab === "runtime"
                 ? "border-b-2 border-pup-maroon text-pup-maroon"
@@ -75,7 +76,22 @@ export default function StudentReportPage() {
           </a>
         </div>
 
-        {/* BEHAVIOR TAB */}
+        {/* TAB CONTENT */}
+        {activeTab === "academic" && (
+          <div className="bg-white p-6 rounded shadow space-y-4">
+            <p>
+              <strong>Session ID:</strong> {sessionId}
+            </p>
+            <strong>Exam Name:</strong> Pre-Test
+            <p>
+              <strong>Score:</strong> 3 / 5
+            </p>
+            <p>
+              <strong>Status:</strong> Completed
+            </p>
+          </div>
+        )}
+
         {activeTab === "behavior" && (
           <div className="bg-white p-6 rounded shadow space-y-4">
             <table className="w-full border">
@@ -114,7 +130,6 @@ export default function StudentReportPage() {
           </div>
         )}
 
-        {/* RUNTIME TAB */}
         {activeTab === "runtime" && (
           <div className="bg-white p-6 rounded shadow">
             {runtimeViolations.length === 0 ? (
