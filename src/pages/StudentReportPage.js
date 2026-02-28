@@ -8,7 +8,9 @@ export default function StudentReportPage() {
   const params = new URLSearchParams(window.location.search);
   const activeTab = params.get("tab") || "academic";
 
-  // MOCK BEHAVIOR DATA (Q1–Q10)
+  // =========================
+  // MOCK BEHAVIOR DATA
+  // =========================
   const behaviorData = [
     { q: 1, label: "normal" },
     { q: 2, label: "normal" },
@@ -21,7 +23,10 @@ export default function StudentReportPage() {
     (b) => b.label === "suspicious",
   ).length;
 
-  const overallBehavior = suspiciousCount >= 3 ? "Normal" : "Cheating";
+  // ✅ UPDATED LOGIC
+  // 0–2 suspicious → Normal
+  // 3–5 suspicious → Cheating
+  const overallBehavior = suspiciousCount >= 3 ? "Cheating" : "Normal";
 
   const runtimeViolations = [
     { type: "Object Whitelisting Violation", question: 4 },
@@ -31,6 +36,7 @@ export default function StudentReportPage() {
   return (
     <StudentLayout>
       <div className="max-w-5xl mx-auto space-y-8">
+        {/* BACK BUTTON */}
         <button
           onClick={() => navigate("/student")}
           className="text-sm text-pup-maroon hover:underline"
@@ -43,7 +49,7 @@ export default function StudentReportPage() {
         {/* TAB NAVIGATION */}
         <div className="flex gap-6 border-b">
           <a
-            href={`?tab=academic`}
+            href="?tab=academic"
             className={`pb-2 ${
               activeTab === "academic"
                 ? "border-b-2 border-pup-maroon text-pup-maroon"
@@ -54,7 +60,7 @@ export default function StudentReportPage() {
           </a>
 
           <a
-            href={`?tab=behavior`}
+            href="?tab=behavior"
             className={`pb-2 ${
               activeTab === "behavior"
                 ? "border-b-2 border-pup-maroon text-pup-maroon"
@@ -65,7 +71,7 @@ export default function StudentReportPage() {
           </a>
 
           <a
-            href={`?tab=runtime`}
+            href="?tab=runtime"
             className={`pb-2 ${
               activeTab === "runtime"
                 ? "border-b-2 border-pup-maroon text-pup-maroon"
@@ -76,22 +82,32 @@ export default function StudentReportPage() {
           </a>
         </div>
 
-        {/* TAB CONTENT */}
+        {/* ========================= */}
+        {/* ACADEMIC TAB */}
+        {/* ========================= */}
         {activeTab === "academic" && (
-          <div className="bg-white p-6 rounded shadow space-y-4">
+          <div className="bg-white p-6 rounded shadow space-y-3">
             <p>
               <strong>Session ID:</strong> {sessionId}
             </p>
-            <strong>Exam Name:</strong> Pre-Test
+
+            <p>
+              <strong>Exam Name:</strong> Pre-Test
+            </p>
+
             <p>
               <strong>Score:</strong> 3 / 5
             </p>
+
             <p>
               <strong>Status:</strong> Completed
             </p>
           </div>
         )}
 
+        {/* ========================= */}
+        {/* BEHAVIOR TAB */}
+        {/* ========================= */}
         {activeTab === "behavior" && (
           <div className="bg-white p-6 rounded shadow space-y-4">
             <table className="w-full border">
@@ -120,16 +136,27 @@ export default function StudentReportPage() {
             </table>
 
             <p>
-              <strong>Total Suspicious:</strong> {suspiciousCount}
+              <strong>Total Suspicious Questions:</strong> {suspiciousCount}
             </p>
 
             <p>
-              <strong>Overall Behavior:</strong>{" "}
-              <span className="font-semibold">{overallBehavior}</span>
+              <strong>Overall Behavior Decision:</strong>{" "}
+              <span
+                className={
+                  overallBehavior === "Cheating"
+                    ? "text-red-600 font-semibold"
+                    : "text-green-600 font-semibold"
+                }
+              >
+                {overallBehavior}
+              </span>
             </p>
           </div>
         )}
 
+        {/* ========================= */}
+        {/* RUNTIME TAB */}
+        {/* ========================= */}
         {activeTab === "runtime" && (
           <div className="bg-white p-6 rounded shadow">
             {runtimeViolations.length === 0 ? (
