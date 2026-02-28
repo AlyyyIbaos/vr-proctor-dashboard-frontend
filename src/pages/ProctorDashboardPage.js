@@ -14,7 +14,6 @@ const mockBehavioralLogs = [
 
 export default function ProctorDashboardPage() {
   const [sessions, setSessions] = useState({});
-  const [selectedSession, setSelectedSession] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
@@ -82,9 +81,9 @@ export default function ProctorDashboardPage() {
           ))}
         </div>
 
-        {/* OVERVIEW TAB */}
+        {/* OVERVIEW */}
         {activeTab === "overview" && (
-          <div className="bg-white shadow rounded p-6">
+          <div className="bg-white shadow rounded p-6 space-y-2">
             <p>Total Active Sessions: {sortedSessions.length}</p>
             <p>
               Flagged Sessions:{" "}
@@ -94,10 +93,13 @@ export default function ProctorDashboardPage() {
                 ).length
               }
             </p>
+            <p className="text-green-600 font-semibold">
+              System Status: Operational
+            </p>
           </div>
         )}
 
-        {/* LIVE SESSION TAB */}
+        {/* LIVE SESSION */}
         {activeTab === "live" && (
           <div className="bg-white shadow rounded p-6 space-y-4">
             <h2 className="font-semibold">Behavioral Logs (Mock Data)</h2>
@@ -105,9 +107,10 @@ export default function ProctorDashboardPage() {
             {mockBehavioralLogs.map((log, index) => (
               <div
                 key={index}
-                className="border rounded p-2 flex justify-between"
+                className="border rounded p-2 flex justify-between text-sm"
               >
                 <span>Window {log.window}</span>
+
                 <span
                   className={
                     log.label === "suspicious"
@@ -115,15 +118,16 @@ export default function ProctorDashboardPage() {
                       : "text-green-600"
                   }
                 >
-                  {log.label}
+                  {log.label.toUpperCase()}
                 </span>
+
                 <span className="text-gray-500">
                   {new Date(log.timestamp).toLocaleTimeString()}
                 </span>
               </div>
             ))}
 
-            <div>
+            <div className="pt-3 border-t">
               <p>Suspicious Total: {suspiciousCount}</p>
               <p
                 className={
@@ -138,9 +142,9 @@ export default function ProctorDashboardPage() {
           </div>
         )}
 
-        {/* CREDENTIALS TAB */}
+        {/* CREDENTIALS */}
         {activeTab === "credentials" && (
-          <div className="bg-white shadow rounded p-6">
+          <div className="bg-white shadow rounded p-6 space-y-2">
             <p>Examinee Name: Mock Student</p>
             <p>Student Number: 2023-00001</p>
             <p>Program: BS Computer Engineering</p>
