@@ -1,89 +1,46 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import StudentLayout from "../components/layout/StudentLayout";
-import api from "../api";
 
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
   const fullName = localStorage.getItem("full_name") || "Student";
-  const token = localStorage.getItem("exam_token");
 
   const [activeTab, setActiveTab] = useState("upcoming");
-  const [upcomingExam, setUpcomingExam] = useState(null);
-  const [completedSessions, setCompletedSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   // =========================
-  // LOAD STUDENT SESSIONS
+  // MOCK UPCOMING EXAM
   // =========================
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await api.get("/sessions/history", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const sessions = res.data || [];
-
-        const active = sessions.find((s) => s.status === "active");
-        const completed = sessions.filter(
-          (s) => s.status === "completed" || s.status === "flagged",
-        );
-
-        setUpcomingExam(active || null);
-        setCompletedSessions(completed);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load dashboard data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [token]);
-
-  // =========================
-  // START EXAM (CREATE SESSION)
-  // =========================
-  const handleStartExam = async () => {
-    try {
-      const res = await api.post(
-        "/sessions/start",
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      alert(
-        `Exam Session ID generated.\n\nSession ID:\n${res.data.id}\n\nYou may now start the VR exam.`,
-      );
-
-      // Refresh dashboard
-      window.location.reload();
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || "Failed to start exam.");
-    }
+  const upcomingExam = {
+    id: "3",
+    exam_name: "Artificial Intelligence Final Exam",
+    date: "March 30, 2026",
+    status: "Not Started",
   };
 
-  if (loading) {
-    return (
-      <StudentLayout>
-        <div className="max-w-5xl mx-auto p-6">Loading...</div>
-      </StudentLayout>
-    );
-  }
+  // =========================
+  // MOCK COMPLETED EXAMS
+  // =========================
+  const completedExams = [
+    {
+      id: "1",
+      exam_name: "Computer Networks Final Exam",
+      score: 42,
+      max_score: 50,
+      status: "Completed",
+    },
+    {
+      id: "2",
+      exam_name: "Data Structures Midterm",
+      score: 35,
+      max_score: 50,
+      status: "Completed",
+    },
+  ];
 
-  if (error) {
-    return (
-      <StudentLayout>
-        <div className="max-w-5xl mx-auto p-6 text-red-600">{error}</div>
-      </StudentLayout>
-    );
-  }
+  const handleStartExam = () => {
+    alert("Exam session initialized. Launch your VR device.");
+  };
 
   return (
     <StudentLayout>
@@ -98,14 +55,16 @@ export default function StudentDashboardPage() {
           </p>
         </div>
 
+        {/* ========================= */}
         {/* TAB HEADER */}
+        {/* ========================= */}
         <div className="flex gap-8 border-b text-lg font-semibold">
           <button
             onClick={() => setActiveTab("upcoming")}
             className={`pb-2 ${
               activeTab === "upcoming"
                 ? "border-b-2 border-pup-maroon text-pup-maroon"
-                : "text-gray-500"
+                : "text-gray-500 hover:text-gray-700"
             }`}
           >
             Upcoming
@@ -116,53 +75,51 @@ export default function StudentDashboardPage() {
             className={`pb-2 ${
               activeTab === "completed"
                 ? "border-b-2 border-pup-maroon text-pup-maroon"
-                : "text-gray-500"
+                : "text-gray-500 hover:text-gray-700"
             }`}
           >
             Completed
           </button>
         </div>
 
-        {/* UPCOMING */}
+        {/* ========================= */}
+        {/* UPCOMING TAB CONTENT */}
+        {/* ========================= */}
         {activeTab === "upcoming" && (
-          <>
-            {upcomingExam ? (
-              <div className="bg-white border rounded-lg p-6 shadow-sm">
-                <h4 className="text-lg font-semibold">
-                  {upcomingExam.exam_title}
-                </h4>
-                <p className="text-sm text-gray-500">
-                  Status: {upcomingExam.status}
-                </p>
-              </div>
-            ) : (
-              <div className="bg-white border rounded-lg p-6 shadow-sm flex justify-between items-center">
-                <p>No active session. You may start the live exam.</p>
-                <button
-                  onClick={handleStartExam}
-                  className="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 transition"
-                >
-                  Start Exam
-                </button>
-              </div>
-            )}
-          </>
+          <div className="bg-white border rounded-lg p-6 flex justify-between items-center shadow-sm">
+            <div>
+              <h4 className="text-lg font-semibold">
+                {upcomingExam.exam_name}
+              </h4>
+              <p className="text-sm text-gray-500">
+                Scheduled Date: {upcomingExam.date}
+              </p>
+              <p className="text-sm text-gray-500">
+                Status: {upcomingExam.status}
+              </p>
+            </div>
+
+            <button
+              onClick={handleStartExam}
+              className="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 transition"
+            >
+              Start Exam
+            </button>
+          </div>
         )}
 
-        {/* COMPLETED */}
+        {/* ========================= */}
+        {/* COMPLETED TAB CONTENT */}
+        {/* ========================= */}
         {activeTab === "completed" && (
           <div className="space-y-4">
-            {completedSessions.length === 0 && <p>No completed exams yet.</p>}
-
-            {completedSessions.map((session) => (
+            {completedExams.map((session) => (
               <div
                 key={session.id}
                 className="bg-white border rounded-lg p-6 flex justify-between items-center shadow-sm"
               >
                 <div>
-                  <h4 className="text-lg font-semibold">
-                    {session.exam_title}
-                  </h4>
+                  <h4 className="text-lg font-semibold">{session.exam_name}</h4>
                   <p className="text-sm text-gray-500">
                     Score: {session.score} / {session.max_score}
                   </p>

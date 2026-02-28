@@ -1,56 +1,37 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import StudentLayout from "../components/layout/StudentLayout";
-import api from "../api";
+import StudentLayout from "../components/layout/StudentLayout.js";
 
 export default function StudentReportPage() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("exam_token");
 
   const params = new URLSearchParams(window.location.search);
   const activeTab = params.get("tab") || "academic";
 
-  const [session, setSession] = useState(null);
-  const [behavior, setBehavior] = useState([]);
-  const [runtimeLogs, setRuntimeLogs] = useState([]);
+  // MOCK BEHAVIOR DATA (Q1–Q10)
+  const behaviorData = [
+    { q: 1, label: "suspicious" },
+    { q: 2, label: "normal" },
+    { q: 3, label: "normal" },
+    { q: 4, label: "suspicious" },
+    { q: 5, label: "normal" },
+    { q: 6, label: "normal" },
+    { q: 7, label: "normal" },
+    { q: 8, label: "normal" },
+    { q: 9, label: "normal" },
+    { q: 10, label: "suspicious" },
+  ];
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const sessionRes = await api.get(`/sessions/${sessionId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+  const suspiciousCount = behaviorData.filter(
+    (b) => b.label === "suspicious",
+  ).length;
 
-        setSession(sessionRes.data);
+  const overallBehavior = suspiciousCount >= 3 ? "Normal" : "Cheating";
 
-        const behaviorRes = await api.get(
-          `/aggregation/${sessionId}/behavioral-report`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-
-        setBehavior(behaviorRes.data);
-
-        const runtimeRes = await api.get(`/detection/session/${sessionId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setRuntimeLogs(runtimeRes.data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    fetchData();
-  }, [sessionId, token]);
-
-  if (!session) {
-    return (
-      <StudentLayout>
-        <div className="p-6">Loading report...</div>
-      </StudentLayout>
-    );
-  }
+  const runtimeViolations = [
+    { type: "Object Whitelisting Violation", question: 4 },
+    { type: "Scene Tampering", question: 10 },
+  ];
 
   return (
     <StudentLayout>
@@ -64,52 +45,120 @@ export default function StudentReportPage() {
 
         <h2 className="text-2xl font-bold">Examination Monitoring Report</h2>
 
-        {/* TABS */}
+        {/* TAB NAVIGATION */}
         <div className="flex gap-6 border-b">
-          <a href="?tab=academic">Academic Summary</a>
-          <a href="?tab=behavior">Behavioral Monitoring</a>
-          <a href="?tab=runtime">Runtime Security</a>
+          <a
+            href={`?tab=academic`}
+            className={`pb-2 ${
+              activeTab === "academic"
+                ? "border-b-2 border-pup-maroon text-pup-maroon"
+                : ""
+            }`}
+          >
+            Academic Summary
+          </a>
+
+          <a
+            href={`?tab=behavior`}
+            className={`pb-2 ${
+              activeTab === "behavior"
+                ? "border-b-2 border-pup-maroon text-pup-maroon"
+                : ""
+            }`}
+          >
+            Behavioral Monitoring
+          </a>
+
+          <a
+            href={`?tab=runtime`}
+            className={`pb-2 ${
+              activeTab === "runtime"
+                ? "border-b-2 border-pup-maroon text-pup-maroon"
+                : ""
+            }`}
+          >
+            Runtime Security Monitoring
+          </a>
         </div>
 
+        {/* TAB CONTENT */}
         {activeTab === "academic" && (
           <div className="bg-white p-6 rounded shadow space-y-4">
             <p>
-              <strong>Session ID:</strong> {session.id}
+              <strong>Session ID:</strong> {sessionId}
             </p>
             <p>
-              <strong>Exam:</strong> {session.exam_title}
+              <strong>Exam Name:</strong> Computer Networks Final
             </p>
             <p>
-              <strong>Score:</strong> {session.score} / {session.max_score}
+              <strong>Score:</strong> 42 / 50
             </p>
             <p>
-              <strong>Status:</strong> {session.status}
-            </p>
-            <p>
-              <strong>Final Label:</strong> {session.final_label}
+              <strong>Status:</strong> Completed
             </p>
           </div>
         )}
 
         {activeTab === "behavior" && (
           <div className="bg-white p-6 rounded shadow space-y-4">
-            {behavior.map((q) => (
-              <div key={q.question_index}>
-                Q{q.question_index} → {q.final_label}
-              </div>
-            ))}
+            <table className="w-full border">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="p-2 border">Question</th>
+                  <th className="p-2 border">Behavior</th>
+                </tr>
+              </thead>
+              <tbody>
+                {behaviorData.map((b) => (
+                  <tr key={b.q}>
+                    <td className="p-2 border text-center">Q{b.q}</td>
+                    <td
+                      className={`p-2 border text-center ${
+                        b.label === "suspicious"
+                          ? "text-red-600 font-semibold"
+                          : "text-green-600"
+                      }`}
+                    >
+                      {b.label}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <p>
+              <strong>Total Suspicious:</strong> {suspiciousCount}
+            </p>
+
+            <p>
+              <strong>Overall Behavior:</strong>{" "}
+              <span className="font-semibold">{overallBehavior}</span>
+            </p>
           </div>
         )}
 
         {activeTab === "runtime" && (
           <div className="bg-white p-6 rounded shadow">
-            {runtimeLogs.length === 0
-              ? "No runtime violations."
-              : runtimeLogs.map((r) => (
-                  <div key={r.id}>
-                    {r.event_type} ({r.severity})
-                  </div>
-                ))}
+            {runtimeViolations.length === 0 ? (
+              <p>No integrity violations detected.</p>
+            ) : (
+              <table className="w-full border">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="p-2 border">Type</th>
+                    <th className="p-2 border">Question</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {runtimeViolations.map((r, index) => (
+                    <tr key={index}>
+                      <td className="p-2 border">{r.type}</td>
+                      <td className="p-2 border text-center">Q{r.question}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </div>
