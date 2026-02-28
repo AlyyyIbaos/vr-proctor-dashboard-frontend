@@ -13,8 +13,8 @@ export default function StudentDashboardPage() {
   // =========================
   const upcomingExam = {
     id: "3",
-    exam_name: "Artificial Intelligence Final Exam",
-    date: "March 30, 2026",
+    exam_name: "Pre-Test",
+    date: "February 20, 2026",
     status: "Not Started",
   };
 
@@ -23,17 +23,10 @@ export default function StudentDashboardPage() {
   // =========================
   const completedExams = [
     {
-      id: "1",
-      exam_name: "Computer Networks Final Exam",
-      score: 42,
-      max_score: 50,
-      status: "Completed",
-    },
-    {
-      id: "2",
-      exam_name: "Data Structures Midterm",
-      score: 35,
-      max_score: 50,
+      id: "d4868390-a11c-4a78-b833-27fd2c606c06",
+      exam_name: "Pre-Test",
+      score: 3,
+      max_score: 5,
       status: "Completed",
     },
   ];

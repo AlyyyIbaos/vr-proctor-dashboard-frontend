@@ -15,11 +15,6 @@ export default function StudentReportPage() {
     { q: 3, label: "normal" },
     { q: 4, label: "suspicious" },
     { q: 5, label: "normal" },
-    { q: 6, label: "normal" },
-    { q: 7, label: "normal" },
-    { q: 8, label: "normal" },
-    { q: 9, label: "normal" },
-    { q: 10, label: "suspicious" },
   ];
 
   const suspiciousCount = behaviorData.filter(
@@ -29,8 +24,8 @@ export default function StudentReportPage() {
   const overallBehavior = suspiciousCount >= 3 ? "Normal" : "Cheating";
 
   const runtimeViolations = [
-    { type: "Object Whitelisting Violation", question: 4 },
-    { type: "Scene Tampering", question: 10 },
+    { type: "Object Whitelisting Violation", question: "None" },
+    { type: "Scene Tampering", question: "None" },
   ];
 
   return (
@@ -82,23 +77,6 @@ export default function StudentReportPage() {
         </div>
 
         {/* TAB CONTENT */}
-        {activeTab === "academic" && (
-          <div className="bg-white p-6 rounded shadow space-y-4">
-            <p>
-              <strong>Session ID:</strong> {sessionId}
-            </p>
-            <p>
-              <strong>Exam Name:</strong> Computer Networks Final
-            </p>
-            <p>
-              <strong>Score:</strong> 42 / 50
-            </p>
-            <p>
-              <strong>Status:</strong> Completed
-            </p>
-          </div>
-        )}
-
         {activeTab === "behavior" && (
           <div className="bg-white p-6 rounded shadow space-y-4">
             <table className="w-full border">
