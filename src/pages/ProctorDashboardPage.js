@@ -1,8 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { io } from "socket.io-client";
+import { useMemo, useState } from "react";
 import StudentLayout from "../components/layout/StudentLayout";
-
-const socket = io("https://vr-proctor-dashboard-backend.onrender.com");
 
 // 🔹 MOCK STUDENTS FOR UI TESTING
 const mockStudents = [
@@ -36,22 +33,7 @@ const mockBehavioralLogs = [
 ];
 
 export default function ProctorDashboardPage() {
-  const [sessions, setSessions] = useState({});
   const [selectedStudent, setSelectedStudent] = useState(null);
-
-  // 🔹 SOCKET LISTENER (kept intact)
-  useEffect(() => {
-    socket.on("live_status", (data) => {
-      setSessions((prev) => ({
-        ...prev,
-        [data.session_id]: data,
-      }));
-    });
-
-    return () => {
-      socket.off("live_status");
-    };
-  }, []);
 
   const classifyRisk = (prob) => {
     if (prob > 0.8) return "HIGH";
