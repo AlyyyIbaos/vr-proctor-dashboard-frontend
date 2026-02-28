@@ -1,14 +1,13 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import StudentLayout from "../components/layout/StudentLayout.js";
 
 export default function StudentReportPage() {
-  const { sessionId } = useParams();
   const navigate = useNavigate();
 
   const params = new URLSearchParams(window.location.search);
   const activeTab = params.get("tab") || "academic";
 
-  // MOCK BEHAVIOR DATA (Q1–Q10)
+  // MOCK BEHAVIOR DATA
   const behaviorData = [
     { q: 1, label: "suspicious" },
     { q: 2, label: "normal" },
@@ -43,7 +42,7 @@ export default function StudentReportPage() {
         {/* TAB NAVIGATION */}
         <div className="flex gap-6 border-b">
           <a
-            href={`?tab=academic`}
+            href="?tab=academic"
             className={`pb-2 ${
               activeTab === "academic"
                 ? "border-b-2 border-pup-maroon text-pup-maroon"
@@ -54,7 +53,7 @@ export default function StudentReportPage() {
           </a>
 
           <a
-            href={`?tab=behavior`}
+            href="?tab=behavior"
             className={`pb-2 ${
               activeTab === "behavior"
                 ? "border-b-2 border-pup-maroon text-pup-maroon"
@@ -65,7 +64,7 @@ export default function StudentReportPage() {
           </a>
 
           <a
-            href={`?tab=runtime`}
+            href="?tab=runtime"
             className={`pb-2 ${
               activeTab === "runtime"
                 ? "border-b-2 border-pup-maroon text-pup-maroon"
@@ -76,7 +75,7 @@ export default function StudentReportPage() {
           </a>
         </div>
 
-        {/* TAB CONTENT */}
+        {/* BEHAVIOR TAB */}
         {activeTab === "behavior" && (
           <div className="bg-white p-6 rounded shadow space-y-4">
             <table className="w-full border">
@@ -115,6 +114,7 @@ export default function StudentReportPage() {
           </div>
         )}
 
+        {/* RUNTIME TAB */}
         {activeTab === "runtime" && (
           <div className="bg-white p-6 rounded shadow">
             {runtimeViolations.length === 0 ? (
