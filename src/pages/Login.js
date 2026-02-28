@@ -71,10 +71,10 @@ export default function Login() {
   const devLogin = () => {
     localStorage.setItem("exam_token", "dev-token");
     localStorage.setItem("user_role", "student");
-    localStorage.setItem("full_name", "Alyssa Reyes");
+    localStorage.setItem("full_name", "Alyssa");
     localStorage.setItem("email", "alyssa@example.com");
     localStorage.setItem("student_number", "2023-00123");
-    localStorage.setItem("program", "BS Computer Science");
+    localStorage.setItem("program", "BS Electronics Engineering");
     localStorage.setItem("year_level", "3");
 
     navigate("/student");
@@ -152,6 +152,18 @@ export default function Login() {
             className="w-full bg-gray-800 text-white py-2 rounded hover:bg-black transition mt-3"
           >
             Dev Login (Bypass OTP)
+          </button>
+          {/* TEMP PROCTOR PORTAL ACCESS */}
+          <button
+            onClick={() => {
+              localStorage.setItem("exam_token", "dev-proctor-token");
+              localStorage.setItem("user_role", "proctor");
+              localStorage.setItem("full_name", "Proctor Admin");
+              navigate("/proctor");
+            }}
+            className="w-full bg-indigo-700 text-white py-2 rounded hover:bg-indigo-800 transition mt-2"
+          >
+            Open SynapSee Proctor Portal (Temp)
           </button>
         </div>
       </div>
