@@ -5,21 +5,22 @@ import StudentLayout from "../components/layout/StudentLayout";
 
 const mockStudents = [
   { id: "1", name: "Alyssa", prob_cheat: 0.18, status: "Active" },
-  { id: "2", name: "John Reyes", prob_cheat: 0.32, status: "Active" },
+  { id: "2", name: "John Reyes", prob_cheat: 0.62, status: "Active" },
   { id: "3", name: "Maria Santos", prob_cheat: 0.91, status: "Flagged" },
 ];
 
 const mockBehavioralLogs = [
-  { question: "Q1", label: "normal", time: "11:15" },
-  { question: "Q2", label: "normal", time: "11:21" },
-  { question: "Q3", label: "normal", time: "11:27" },
-  { question: "Q4", label: "suspicious", time: "11:33" },
-  { question: "Q5", label: "normal", time: "11:45" },
+  { question: "Q1", label: "normal", time: "11:15", confidence: 0.88 },
+  { question: "Q2", label: "normal", time: "11:21", confidence: 0.91 },
+  { question: "Q3", label: "normal", time: "11:27", confidence: 0.85 },
+  { question: "Q4", label: "suspicious", time: "11:33", confidence: 0.94 },
+  { question: "Q5", label: "suspicious", time: "11:40", confidence: 0.97 },
+  { question: "Q6", label: "suspicious", time: "11:45", confidence: 0.96 },
 ];
 
 const mockRuntimeLogs = [
-  { id: 1, type: "Object Injection", time: "6:17 PM" },
-  { id: 2, type: "Scene Tampering", time: "5:58 PM" },
+  { id: 1, type: "Object Injection", severity: "HIGH", time: "6:17 PM" },
+  { id: 2, type: "Scene Tampering", severity: "MEDIUM", time: "5:58 PM" },
 ];
 
 const mockExamSessions = [
@@ -59,12 +60,29 @@ export default function ProctorDashboardPage() {
     (log) => log.label === "suspicious",
   ).length;
 
-  const finalBehavior = suspiciousCount >= 3 ? "CHEATING" : "NORMAL";
+  const behavioralDecision = suspiciousCount >= 3 ? "CHEATING" : "NORMAL";
+
+  const runtimeHighSeverity = mockRuntimeLogs.some(
+    (log) => log.severity === "HIGH",
+  );
+
+  const sessionFlagged =
+    behavioralDecision === "CHEATING" || runtimeHighSeverity;
+
+  const riskBarColor = (prob) =>
+    prob > 0.8 ? "bg-red-600" : prob > 0.5 ? "bg-yellow-500" : "bg-green-600";
+
+  const severityColor = (level) =>
+    level === "HIGH"
+      ? "bg-red-100 text-red-700"
+      : level === "MEDIUM"
+        ? "bg-yellow-100 text-yellow-700"
+        : "bg-gray-100 text-gray-600";
 
   return (
     <StudentLayout>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* ================= TAB HEADER ================= */}
+        {/* ================= TABS ================= */}
         <div className="flex space-x-8 border-b pb-3">
           {["overview", "sessions"].map((tab) => (
             <button
@@ -113,22 +131,39 @@ export default function ProctorDashboardPage() {
               </div>
             </div>
 
-            {/* LIVE ALERTS */}
-            <div className="bg-white shadow rounded p-6">
-              <h3 className="font-semibold mb-3">Live Cheating Alerts</h3>
-              <p className="text-gray-500 text-sm">No alerts detected yet.</p>
+            {/* LIVE INDICATOR */}
+            <div className="bg-white shadow rounded p-4 flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-sm font-medium">
+                Live Monitoring Active
+              </span>
             </div>
 
             {/* RUNTIME SECURITY LOGS */}
             <div className="bg-white shadow rounded p-6">
               <h3 className="font-semibold mb-3">Runtime Security Logs</h3>
 
+              {mockRuntimeLogs.length === 0 && (
+                <p className="text-gray-500 text-sm">
+                  No runtime violations detected.
+                </p>
+              )}
+
               {mockRuntimeLogs.map((log) => (
                 <div
                   key={log.id}
                   className="border rounded p-3 mb-2 flex justify-between text-sm"
                 >
-                  <span>{log.type}</span>
+                  <div>
+                    <p className="font-medium">{log.type}</p>
+                    <span
+                      className={`px-2 py-1 text-xs rounded ${severityColor(
+                        log.severity,
+                      )}`}
+                    >
+                      {log.severity}
+                    </span>
+                  </div>
                   <span className="text-gray-400">{log.time}</span>
                 </div>
               ))}
@@ -142,7 +177,6 @@ export default function ProctorDashboardPage() {
 
         {activeTab === "sessions" && (
           <div className="bg-white shadow rounded p-6">
-            {/* STEP 1: LIST EXAMS */}
             {!selectedExam && (
               <>
                 <h3 className="font-semibold mb-4">Exam Sessions</h3>
@@ -159,7 +193,6 @@ export default function ProctorDashboardPage() {
               </>
             )}
 
-            {/* STEP 2: LIST STUDENTS */}
             {selectedExam && !selectedStudent && (
               <>
                 <button
@@ -186,7 +219,6 @@ export default function ProctorDashboardPage() {
               </>
             )}
 
-            {/* STEP 3: STUDENT SESSION DETAILS */}
             {selectedExam && selectedStudent && (
               <>
                 <button
@@ -196,82 +228,111 @@ export default function ProctorDashboardPage() {
                   ← Back to Examinees
                 </button>
 
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-xl font-semibold">
-                      {selectedStudent.name}
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      Risk Level: {classifyRisk(selectedStudent.prob_cheat)}
+                {/* HEADER */}
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold">
+                    {selectedStudent.name}
+                  </h2>
+
+                  {sessionFlagged && (
+                    <span className="px-3 py-1 bg-red-600 text-white text-xs rounded">
+                      FLAGGED SESSION
+                    </span>
+                  )}
+                </div>
+
+                {/* RISK BAR */}
+                <div className="mt-4">
+                  <p className="text-sm text-gray-500 mb-2">
+                    AI Threat Probability
+                  </p>
+                  <div className="w-full h-4 bg-gray-200 rounded">
+                    <div
+                      className={`${riskBarColor(
+                        selectedStudent.prob_cheat,
+                      )} h-4 rounded`}
+                      style={{
+                        width: `${selectedStudent.prob_cheat * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-sm mt-2">
+                    {(selectedStudent.prob_cheat * 100).toFixed(2)}%
+                  </p>
+                </div>
+
+                {/* SESSION VERDICT */}
+                <div className="mt-6 bg-gray-50 p-4 rounded border">
+                  <h3 className="font-semibold mb-2">AI Session Verdict</h3>
+                  <p>Behavioral: {behavioralDecision}</p>
+                  <p>
+                    Runtime Violations:{" "}
+                    {runtimeHighSeverity ? "Detected" : "None"}
+                  </p>
+                  <p className="font-semibold mt-2">
+                    Final: {sessionFlagged ? "FLAGGED" : "NORMAL"}
+                  </p>
+                </div>
+
+                {/* BEHAVIORAL TIMELINE */}
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-3">Behavioral Timeline</h3>
+
+                  {mockBehavioralLogs.length === 0 && (
+                    <p className="text-gray-500 text-sm">
+                      No behavioral logs recorded.
                     </p>
-                  </div>
+                  )}
 
-                  {/* BEHAVIORAL LOGS */}
-                  <div>
-                    <h3 className="font-semibold mb-3">
-                      Behavioral Monitoring (CNN-LSTM)
-                    </h3>
-
-                    <table className="w-full border text-sm">
-                      <thead className="bg-gray-100">
-                        <tr>
-                          <th className="border p-2 text-left">Question</th>
-                          <th className="border p-2 text-left">Behavior</th>
-                          <th className="border p-2 text-left">Timestamp</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {mockBehavioralLogs.map((log, index) => (
-                          <tr key={index}>
-                            <td className="border p-2">{log.question}</td>
-                            <td
-                              className={`border p-2 ${
-                                log.label === "suspicious"
-                                  ? "text-red-600"
-                                  : "text-green-600"
-                              }`}
-                            >
-                              {log.label}
-                            </td>
-                            <td className="border p-2 text-gray-500">
-                              {log.time}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    <div className="mt-4 text-sm">
-                      <p>Suspicious Events: {suspiciousCount}</p>
-
-                      <p
-                        className={`mt-2 font-semibold ${
-                          finalBehavior === "CHEATING"
-                            ? "text-red-600"
-                            : "text-green-600"
-                        }`}
-                      >
-                        Final Behavioral Decision: {finalBehavior}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* RUNTIME SECURITY */}
-                  <div>
-                    <h3 className="font-semibold mb-3">
-                      Runtime Security Logs
-                    </h3>
-
-                    {mockRuntimeLogs.map((log) => (
+                  {mockBehavioralLogs.map((log, index) => (
+                    <div key={index} className="flex items-start mb-3">
                       <div
-                        key={log.id}
-                        className="border rounded p-3 mb-2 flex justify-between text-sm"
-                      >
-                        <span>{log.type}</span>
-                        <span className="text-gray-400">{log.time}</span>
+                        className={`w-3 h-3 rounded-full mt-1 mr-3 ${
+                          log.label === "suspicious"
+                            ? "bg-red-500"
+                            : "bg-green-500"
+                        }`}
+                      />
+                      <div>
+                        <p className="text-sm font-medium">
+                          {log.time} — {log.question} — {log.label}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Confidence: {(log.confidence * 100).toFixed(0)}%
+                        </p>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* RUNTIME LOGS */}
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-3">Runtime Security Logs</h3>
+
+                  {mockRuntimeLogs.length === 0 && (
+                    <p className="text-gray-500 text-sm">
+                      No runtime violations detected.
+                    </p>
+                  )}
+
+                  {mockRuntimeLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="border rounded p-3 mb-2 flex justify-between text-sm"
+                    >
+                      <div>
+                        <p className="font-medium">{log.type}</p>
+                        <span
+                          className={`px-2 py-1 text-xs rounded ${severityColor(
+                            log.severity,
+                          )}`}
+                        >
+                          {log.severity}
+                        </span>
+                      </div>
+                      <span className="text-gray-400">{log.time}</span>
+                    </div>
+                  ))}
                 </div>
               </>
             )}
