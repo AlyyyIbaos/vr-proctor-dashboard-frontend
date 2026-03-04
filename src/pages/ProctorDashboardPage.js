@@ -1,118 +1,175 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import StudentLayout from "../components/layout/StudentLayout";
-
-/* ================= MOCK DATA ================= */
-
-const mockStudents = [
-  {
-    id: "1",
-    name: "Alyssa",
-    prob_cheat: 0.18,
-    status: "Active",
-    course: "BS Computer Science",
-    year: "3rd Year",
-    exam: "Midterm Examination",
-    exam_status: "Active",
-    exam_score: "2 / 10",
-  },
-  {
-    id: "2",
-    name: "John Reyes",
-    prob_cheat: 0.62,
-    status: "Completed",
-    course: "BS Information Technology",
-    year: "2nd Year",
-    exam: "Midterm Examination",
-    exam_status: "Completed",
-    exam_score: "6 / 10",
-  },
-  {
-    id: "3",
-    name: "Maria Santos",
-    prob_cheat: 0.91,
-    status: "Flagged",
-    course: "BS Computer Science",
-    year: "4th Year",
-    exam: "Midterm Examination",
-    exam_status: "Completed",
-    exam_score: "5 / 10",
-  },
-];
-
-const mockBehavioralLogs = [
-  { question: "Q1", label: "normal", time: "11:15", confidence: 0.88 },
-  { question: "Q2", label: "normal", time: "11:21", confidence: 0.91 },
-  { question: "Q3", label: "normal", time: "11:27", confidence: 0.85 },
-  { question: "Q4", label: "suspicious", time: "11:33", confidence: 0.94 },
-  { question: "Q5", label: "suspicious", time: "11:40", confidence: 0.97 },
-  { question: "Q6", label: "suspicious", time: "11:45", confidence: 0.96 },
-];
-
-const mockRuntimeLogs = [
-  { id: 1, type: "Object Injection", severity: "HIGH", time: "6:17 PM" },
-  { id: 2, type: "Scene Tampering", severity: "MEDIUM", time: "5:58 PM" },
-];
-
-const mockExamSessions = [
-  {
-    id: "exam1",
-    title: "Midterm Exam",
-    students: mockStudents,
-  },
-];
-
-/* ================= COMPONENT ================= */
+import api from "../api";
+import socket from "../services/socket";
 
 export default function ProctorDashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
+
+  const [exams, setExams] = useState([]);
   const [selectedExam, setSelectedExam] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  const classifyRisk = (prob) => {
-    if (prob > 0.8) return "High";
-    if (prob > 0.5) return "Medium";
-    return "Low";
-  };
+  const [runtimeLogs, setRuntimeLogs] = useState([]);
+  const [behaviorLogs, setBehaviorLogs] = useState([]);
 
-  const sortedStudents = useMemo(() => {
-    return [...mockStudents].sort((a, b) => b.prob_cheat - a.prob_cheat);
+  const [riskProbability, setRiskProbability] = useState(0);
+
+  /*
+  ==================================================
+  FETCH LIVE EXAMS
+  ==================================================
+  */
+
+  useEffect(() => {
+    const fetchExams = async () => {
+      try {
+        const res = await api.get("/exams/live");
+
+        setExams(res.data || []);
+      } catch (err) {
+        console.error("Failed to fetch live exams:", err);
+      }
+    };
+
+    fetchExams();
   }, []);
 
-  const highRiskCount = sortedStudents.filter(
-    (s) => classifyRisk(s.prob_cheat) === "High",
-  ).length;
+  /*
+  ==================================================
+  FETCH RUNTIME SECURITY LOGS
+  ==================================================
+  */
 
-  const avgRisk =
-    sortedStudents.reduce((acc, s) => acc + s.prob_cheat, 0) /
-    sortedStudents.length;
+  useEffect(() => {
+    if (!selectedStudent) return;
 
-  const suspiciousCount = mockBehavioralLogs.filter(
-    (log) => log.label === "suspicious",
-  ).length;
+    const fetchRuntimeLogs = async () => {
+      try {
+        const res = await api.get(`/detections/session/${selectedStudent.id}`);
 
-  const behavioralDecision = suspiciousCount >= 3 ? "CHEATING" : "NORMAL";
+        setRuntimeLogs(res.data || []);
+      } catch (err) {
+        console.error("Runtime logs fetch error:", err);
+      }
+    };
 
-  const runtimeHighSeverity = mockRuntimeLogs.some(
-    (log) => log.severity === "HIGH",
-  );
+    fetchRuntimeLogs();
+  }, [selectedStudent]);
 
-  const sessionFlagged =
-    behavioralDecision === "CHEATING" || runtimeHighSeverity;
+  /*
+  ==================================================
+  FETCH BEHAVIORAL TIMELINE
+  ==================================================
+  */
 
-  const riskBarColor = (prob) =>
-    prob > 0.8 ? "bg-red-600" : prob > 0.5 ? "bg-yellow-500" : "bg-green-600";
+  useEffect(() => {
+    if (!selectedStudent) return;
 
-  const severityColor = (level) =>
-    level === "HIGH"
-      ? "bg-red-100 text-red-700"
-      : level === "MEDIUM"
-        ? "bg-yellow-100 text-yellow-700"
-        : "bg-gray-100 text-gray-600";
+    const fetchBehaviorLogs = async () => {
+      try {
+        const res = await api.get(
+          `/aggregation/${selectedStudent.id}/behavioral-report`,
+        );
+
+        setBehaviorLogs(res.data || []);
+      } catch (err) {
+        console.error("Behavioral logs fetch error:", err);
+      }
+    };
+
+    fetchBehaviorLogs();
+  }, [selectedStudent]);
+
+  /*
+  ==================================================
+  SOCKET.IO REAL-TIME MONITORING
+  ==================================================
+  */
+
+  useEffect(() => {
+    if (!selectedStudent) return;
+
+    const sessionId = selectedStudent.id;
+
+    socket.emit("join_session", sessionId);
+
+    console.log("🔗 Monitoring session:", sessionId);
+
+    /*
+    ==========================
+    RUNTIME SECURITY ALERTS
+    ==========================
+    */
+
+    const handleAlert = (alert) => {
+      console.log("🚨 Runtime alert:", alert);
+
+      if (alert.session_id === sessionId) {
+        setRuntimeLogs((prev) => [alert, ...prev]);
+      }
+    };
+
+    /*
+    ==========================
+    LIVE AI RISK SCORE
+    ==========================
+    */
+
+    const handleLiveStatus = (data) => {
+      if (data.session_id === sessionId) {
+        console.log("📊 Live AI probability:", data.prob_cheat);
+
+        setRiskProbability(data.prob_cheat);
+      }
+    };
+
+    socket.on("new_alert", handleAlert);
+    socket.on("live_status", handleLiveStatus);
+
+    return () => {
+      socket.emit("leave_session", sessionId);
+
+      socket.off("new_alert", handleAlert);
+      socket.off("live_status", handleLiveStatus);
+    };
+  }, [selectedStudent]);
+
+  /*
+  ==================================================
+  RISK BAR COLOR
+  ==================================================
+  */
+
+  const riskColor = (p) => {
+    if (p > 0.8) return "bg-red-600";
+    if (p > 0.5) return "bg-yellow-500";
+
+    return "bg-green-600";
+  };
+
+  /*
+  ==================================================
+  OVERVIEW STATS
+  ==================================================
+  */
+
+  const totalSessions = exams.reduce((acc, exam) => {
+    return acc + (exam.sessions?.length || 0);
+  }, 0);
+
+  const flaggedSessions = exams.reduce((acc, exam) => {
+    const flagged =
+      exam.sessions?.filter((s) => s.status === "flagged").length || 0;
+
+    return acc + flagged;
+  }, 0);
 
   return (
     <StudentLayout>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* ================= TABS ================= */}
+        {/* NAV TABS */}
+
         <div className="flex space-x-8 border-b pb-3">
           {["overview", "sessions"].map((tab) => (
             <button
@@ -133,64 +190,36 @@ export default function ProctorDashboardPage() {
           ))}
         </div>
 
-        {/* ================= OVERVIEW TAB ================= */}
+        {/* =========================
+            OVERVIEW
+        ========================= */}
 
         {activeTab === "overview" && (
           <div className="space-y-6">
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-white shadow rounded p-4">
                 <p className="text-sm text-gray-500">Active Examinees</p>
-                <p className="text-2xl font-bold">{sortedStudents.length}</p>
+                <p className="text-2xl font-bold">{totalSessions}</p>
               </div>
 
               <div className="bg-white shadow rounded p-4">
                 <p className="text-sm text-gray-500">Flagged Sessions</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {highRiskCount}
+                  {flaggedSessions}
                 </p>
               </div>
 
               <div className="bg-white shadow rounded p-4">
-                <p className="text-sm text-gray-500">Average Risk Score</p>
-                <p className="text-2xl font-bold">
-                  {(avgRisk * 100).toFixed(0)}%
-                </p>
+                <p className="text-sm text-gray-500">System Status</p>
+                <p className="text-2xl font-bold text-green-600">Monitoring</p>
               </div>
-            </div>
-
-            <div className="bg-white shadow rounded p-4 flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-sm font-medium">
-                Live Monitoring Active
-              </span>
-            </div>
-
-            <div className="bg-white shadow rounded p-6">
-              <h3 className="font-semibold mb-3">Runtime Security Logs</h3>
-
-              {mockRuntimeLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="border rounded p-3 mb-2 flex justify-between text-sm"
-                >
-                  <div>
-                    <p className="font-medium">{log.type}</p>
-                    <span
-                      className={`px-2 py-1 text-xs rounded ${severityColor(
-                        log.severity,
-                      )}`}
-                    >
-                      {log.severity}
-                    </span>
-                  </div>
-                  <span className="text-gray-400">{log.time}</span>
-                </div>
-              ))}
             </div>
           </div>
         )}
 
-        {/* ================= SESSIONS TAB ================= */}
+        {/* =========================
+            SESSIONS TAB
+        ========================= */}
 
         {activeTab === "sessions" && (
           <div className="bg-white shadow rounded p-6">
@@ -198,7 +227,7 @@ export default function ProctorDashboardPage() {
               <>
                 <h3 className="font-semibold mb-4">Exam Sessions</h3>
 
-                {mockExamSessions.map((exam) => (
+                {exams.map((exam) => (
                   <div
                     key={exam.id}
                     onClick={() => setSelectedExam(exam)}
@@ -221,13 +250,17 @@ export default function ProctorDashboardPage() {
 
                 <h3 className="font-semibold mb-4">{selectedExam.title}</h3>
 
-                {selectedExam.students.map((student) => (
+                {selectedExam.sessions.map((student) => (
                   <div
                     key={student.id}
-                    onClick={() => setSelectedStudent(student)}
+                    onClick={() => {
+                      setSelectedStudent(student);
+                      setRiskProbability(0);
+                    }}
                     className="border rounded p-3 mb-2 cursor-pointer hover:shadow flex justify-between"
                   >
-                    <span>{student.name}</span>
+                    <span>{student.examinee_name}</span>
+
                     <span className="text-sm text-gray-500">
                       {student.status}
                     </span>
@@ -245,45 +278,42 @@ export default function ProctorDashboardPage() {
                   ← Back to Examinees
                 </button>
 
+                {/* STUDENT HEADER */}
+
                 <div className="flex justify-between items-start">
                   <div>
                     <h2 className="text-xl font-semibold">
-                      {selectedStudent.name}
+                      {selectedStudent.examinee_name}
                     </h2>
 
                     <p className="text-sm text-gray-600">
-                      {selectedStudent.course} • {selectedStudent.year}
+                      {selectedStudent.course} • {selectedStudent.year_level}
                     </p>
 
                     <p className="text-sm text-gray-600">
-                      {selectedStudent.exam}
+                      {selectedExam.title}
                     </p>
 
                     <div className="flex gap-6 text-sm text-gray-600 mt-1">
                       <span>
-                        Status:{" "}
-                        <span className="font-medium">
-                          {selectedStudent.exam_status}
+                        Status:
+                        <span className="font-medium ml-1">
+                          {selectedStudent.status}
                         </span>
                       </span>
 
                       <span>
-                        Score:{" "}
-                        <span className="font-medium">
-                          {selectedStudent.exam_score}
+                        Score:
+                        <span className="font-medium ml-1">
+                          {selectedStudent.score ?? 0} /
+                          {selectedStudent.max_score ?? 0}
                         </span>
                       </span>
                     </div>
                   </div>
-
-                  {sessionFlagged && (
-                    <span className="px-3 py-1 bg-red-600 text-white text-xs rounded">
-                      FLAGGED SESSION
-                    </span>
-                  )}
                 </div>
 
-                {/* AI RISK BAR */}
+                {/* AI THREAT PROBABILITY */}
 
                 <div className="mt-4">
                   <p className="text-sm text-gray-500 mb-2">
@@ -292,34 +322,15 @@ export default function ProctorDashboardPage() {
 
                   <div className="w-full h-4 bg-gray-200 rounded">
                     <div
-                      className={`${riskBarColor(
-                        selectedStudent.prob_cheat,
-                      )} h-4 rounded`}
+                      className={`${riskColor(riskProbability)} h-4 rounded`}
                       style={{
-                        width: `${selectedStudent.prob_cheat * 100}%`,
+                        width: `${riskProbability * 100}%`,
                       }}
                     />
                   </div>
 
                   <p className="text-sm mt-2">
-                    {(selectedStudent.prob_cheat * 100).toFixed(2)}%
-                  </p>
-                </div>
-
-                {/* SESSION VERDICT */}
-
-                <div className="mt-6 bg-gray-50 p-4 rounded border">
-                  <h3 className="font-semibold mb-2">AI Session Verdict</h3>
-
-                  <p>Behavioral: {behavioralDecision}</p>
-
-                  <p>
-                    Runtime Violations:{" "}
-                    {runtimeHighSeverity ? "Detected" : "None"}
-                  </p>
-
-                  <p className="font-semibold mt-2">
-                    Final: {sessionFlagged ? "FLAGGED" : "NORMAL"}
+                    {(riskProbability * 100).toFixed(2)}%
                   </p>
                 </div>
 
@@ -328,52 +339,51 @@ export default function ProctorDashboardPage() {
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3">Behavioral Timeline</h3>
 
-                  {mockBehavioralLogs.map((log, index) => (
-                    <div key={index} className="flex items-start mb-3">
-                      <div
-                        className={`w-3 h-3 rounded-full mt-1 mr-3 ${
-                          log.label === "suspicious"
-                            ? "bg-red-500"
-                            : "bg-green-500"
-                        }`}
-                      />
+                  {behaviorLogs.map((log) => (
+                    <div key={log.question_index} className="mb-3">
+                      <p className="text-sm font-medium">
+                        Question {log.question_index}
+                      </p>
 
-                      <div>
-                        <p className="text-sm font-medium">
-                          {log.time} — {log.question} — {log.label}
-                        </p>
+                      <p className="text-xs text-gray-500">
+                        Label: {log.final_label}
+                      </p>
 
-                        <p className="text-xs text-gray-500">
-                          Confidence: {(log.confidence * 100).toFixed(0)}%
-                        </p>
-                      </div>
+                      <p className="text-xs text-gray-500">
+                        Avg Probability:
+                        {(log.avg_probability * 100).toFixed(1)}%
+                      </p>
                     </div>
                   ))}
                 </div>
 
-                {/* RUNTIME SECURITY */}
+                {/* RUNTIME SECURITY LOGS */}
 
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3">Runtime Security Logs</h3>
 
-                  {mockRuntimeLogs.map((log) => (
+                  {runtimeLogs.length === 0 && (
+                    <p className="text-sm text-gray-500">
+                      No runtime violations detected.
+                    </p>
+                  )}
+
+                  {runtimeLogs.map((log) => (
                     <div
                       key={log.id}
                       className="border rounded p-3 mb-2 flex justify-between text-sm"
                     >
                       <div>
-                        <p className="font-medium">{log.type}</p>
+                        <p className="font-medium">{log.event_type}</p>
 
-                        <span
-                          className={`px-2 py-1 text-xs rounded ${severityColor(
-                            log.severity,
-                          )}`}
-                        >
-                          {log.severity}
+                        <span className="text-xs text-gray-500">
+                          Severity: {log.severity}
                         </span>
                       </div>
 
-                      <span className="text-gray-400">{log.time}</span>
+                      <span className="text-gray-400">
+                        {new Date(log.detected_at).toLocaleTimeString()}
+                      </span>
                     </div>
                   ))}
                 </div>
