@@ -4,9 +4,39 @@ import StudentLayout from "../components/layout/StudentLayout";
 /* ================= MOCK DATA ================= */
 
 const mockStudents = [
-  { id: "1", name: "Alyssa", prob_cheat: 0.18, status: "Active" },
-  { id: "2", name: "John Reyes", prob_cheat: 0.62, status: "Active" },
-  { id: "3", name: "Maria Santos", prob_cheat: 0.91, status: "Flagged" },
+  {
+    id: "1",
+    name: "Alyssa",
+    prob_cheat: 0.18,
+    status: "Active",
+    course: "BS Computer Science",
+    year: "3rd Year",
+    exam: "Midterm Examination",
+    exam_status: "Active",
+    exam_score: "2 / 10",
+  },
+  {
+    id: "2",
+    name: "John Reyes",
+    prob_cheat: 0.62,
+    status: "Completed",
+    course: "BS Information Technology",
+    year: "2nd Year",
+    exam: "Midterm Examination",
+    exam_status: "Completed",
+    exam_score: "6 / 10",
+  },
+  {
+    id: "3",
+    name: "Maria Santos",
+    prob_cheat: 0.91,
+    status: "Flagged",
+    course: "BS Computer Science",
+    year: "4th Year",
+    exam: "Midterm Examination",
+    exam_status: "Completed",
+    exam_score: "5 / 10",
+  },
 ];
 
 const mockBehavioralLogs = [
@@ -103,13 +133,10 @@ export default function ProctorDashboardPage() {
           ))}
         </div>
 
-        {/* ===================================================== */}
-        {/* ================= OVERVIEW TAB ======================= */}
-        {/* ===================================================== */}
+        {/* ================= OVERVIEW TAB ================= */}
 
         {activeTab === "overview" && (
           <div className="space-y-6">
-            {/* SUMMARY CARDS */}
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-white shadow rounded p-4">
                 <p className="text-sm text-gray-500">Active Examinees</p>
@@ -131,7 +158,6 @@ export default function ProctorDashboardPage() {
               </div>
             </div>
 
-            {/* LIVE INDICATOR */}
             <div className="bg-white shadow rounded p-4 flex items-center space-x-2">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
               <span className="text-sm font-medium">
@@ -139,15 +165,8 @@ export default function ProctorDashboardPage() {
               </span>
             </div>
 
-            {/* RUNTIME SECURITY LOGS */}
             <div className="bg-white shadow rounded p-6">
               <h3 className="font-semibold mb-3">Runtime Security Logs</h3>
-
-              {mockRuntimeLogs.length === 0 && (
-                <p className="text-gray-500 text-sm">
-                  No runtime violations detected.
-                </p>
-              )}
 
               {mockRuntimeLogs.map((log) => (
                 <div
@@ -171,9 +190,7 @@ export default function ProctorDashboardPage() {
           </div>
         )}
 
-        {/* ===================================================== */}
-        {/* ================= SESSIONS TAB ======================= */}
-        {/* ===================================================== */}
+        {/* ================= SESSIONS TAB ================= */}
 
         {activeTab === "sessions" && (
           <div className="bg-white shadow rounded p-6">
@@ -228,11 +245,36 @@ export default function ProctorDashboardPage() {
                   ← Back to Examinees
                 </button>
 
-                {/* HEADER */}
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold">
-                    {selectedStudent.name}
-                  </h2>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-xl font-semibold">
+                      {selectedStudent.name}
+                    </h2>
+
+                    <p className="text-sm text-gray-600">
+                      {selectedStudent.course} • {selectedStudent.year}
+                    </p>
+
+                    <p className="text-sm text-gray-600">
+                      {selectedStudent.exam}
+                    </p>
+
+                    <div className="flex gap-6 text-sm text-gray-600 mt-1">
+                      <span>
+                        Status:{" "}
+                        <span className="font-medium">
+                          {selectedStudent.exam_status}
+                        </span>
+                      </span>
+
+                      <span>
+                        Score:{" "}
+                        <span className="font-medium">
+                          {selectedStudent.exam_score}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
 
                   {sessionFlagged && (
                     <span className="px-3 py-1 bg-red-600 text-white text-xs rounded">
@@ -241,11 +283,13 @@ export default function ProctorDashboardPage() {
                   )}
                 </div>
 
-                {/* RISK BAR */}
+                {/* AI RISK BAR */}
+
                 <div className="mt-4">
                   <p className="text-sm text-gray-500 mb-2">
                     AI Threat Probability
                   </p>
+
                   <div className="w-full h-4 bg-gray-200 rounded">
                     <div
                       className={`${riskBarColor(
@@ -256,33 +300,33 @@ export default function ProctorDashboardPage() {
                       }}
                     />
                   </div>
+
                   <p className="text-sm mt-2">
                     {(selectedStudent.prob_cheat * 100).toFixed(2)}%
                   </p>
                 </div>
 
                 {/* SESSION VERDICT */}
+
                 <div className="mt-6 bg-gray-50 p-4 rounded border">
                   <h3 className="font-semibold mb-2">AI Session Verdict</h3>
+
                   <p>Behavioral: {behavioralDecision}</p>
+
                   <p>
                     Runtime Violations:{" "}
                     {runtimeHighSeverity ? "Detected" : "None"}
                   </p>
+
                   <p className="font-semibold mt-2">
                     Final: {sessionFlagged ? "FLAGGED" : "NORMAL"}
                   </p>
                 </div>
 
                 {/* BEHAVIORAL TIMELINE */}
+
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3">Behavioral Timeline</h3>
-
-                  {mockBehavioralLogs.length === 0 && (
-                    <p className="text-gray-500 text-sm">
-                      No behavioral logs recorded.
-                    </p>
-                  )}
 
                   {mockBehavioralLogs.map((log, index) => (
                     <div key={index} className="flex items-start mb-3">
@@ -293,10 +337,12 @@ export default function ProctorDashboardPage() {
                             : "bg-green-500"
                         }`}
                       />
+
                       <div>
                         <p className="text-sm font-medium">
                           {log.time} — {log.question} — {log.label}
                         </p>
+
                         <p className="text-xs text-gray-500">
                           Confidence: {(log.confidence * 100).toFixed(0)}%
                         </p>
@@ -305,15 +351,10 @@ export default function ProctorDashboardPage() {
                   ))}
                 </div>
 
-                {/* RUNTIME LOGS */}
+                {/* RUNTIME SECURITY */}
+
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3">Runtime Security Logs</h3>
-
-                  {mockRuntimeLogs.length === 0 && (
-                    <p className="text-gray-500 text-sm">
-                      No runtime violations detected.
-                    </p>
-                  )}
 
                   {mockRuntimeLogs.map((log) => (
                     <div
@@ -322,6 +363,7 @@ export default function ProctorDashboardPage() {
                     >
                       <div>
                         <p className="font-medium">{log.type}</p>
+
                         <span
                           className={`px-2 py-1 text-xs rounded ${severityColor(
                             log.severity,
@@ -330,6 +372,7 @@ export default function ProctorDashboardPage() {
                           {log.severity}
                         </span>
                       </div>
+
                       <span className="text-gray-400">{log.time}</span>
                     </div>
                   ))}
