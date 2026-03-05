@@ -4,7 +4,7 @@ import StudentLayout from "../components/layout/StudentLayout";
 
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
-  const fullName = localStorage.getItem("full_name") || "Student";
+  const fullName = localStorage.getItem("full_name") || "Carlos";
 
   const [activeTab, setActiveTab] = useState("upcoming");
 
