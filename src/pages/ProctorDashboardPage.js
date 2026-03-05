@@ -25,7 +25,6 @@ export default function ProctorDashboardPage() {
     const fetchExams = async () => {
       try {
         const res = await api.get("/exams/live");
-
         setExams(res.data || []);
       } catch (err) {
         console.error("Failed to fetch live exams:", err);
@@ -47,7 +46,6 @@ export default function ProctorDashboardPage() {
     const fetchRuntimeLogs = async () => {
       try {
         const res = await api.get(`/detections/session/${selectedStudent.id}`);
-
         setRuntimeLogs(res.data || []);
       } catch (err) {
         console.error("Runtime logs fetch error:", err);
@@ -98,14 +96,38 @@ export default function ProctorDashboardPage() {
 
     /*
     ==========================
-    RUNTIME SECURITY ALERTS
+    ALERT HANDLER
     ==========================
     */
 
     const handleAlert = (alert) => {
-      console.log("🚨 Runtime alert:", alert);
+      if (alert.session_id !== sessionId) return;
 
-      if (alert.session_id === sessionId) {
+      console.log("🚨 Alert received:", alert);
+
+      /*
+      Behavioral AI Detection
+      */
+
+      if (alert.event_type === "behavioral") {
+        setBehaviorLogs((prev) => [
+          {
+            question_index: alert.question_index,
+            final_label: alert.severity,
+            avg_probability: alert.confidence_level,
+          },
+          ...prev,
+        ]);
+      }
+
+      /*
+      Runtime Security Logs
+      */
+
+      if (
+        alert.event_type === "object injection" ||
+        alert.event_type === "scene tampering"
+      ) {
         setRuntimeLogs((prev) => [alert, ...prev]);
       }
     };
@@ -119,7 +141,6 @@ export default function ProctorDashboardPage() {
     const handleLiveStatus = (data) => {
       if (data.session_id === sessionId) {
         console.log("📊 Live AI probability:", data.prob_cheat);
-
         setRiskProbability(data.prob_cheat);
       }
     };
@@ -144,8 +165,19 @@ export default function ProctorDashboardPage() {
   const riskColor = (p) => {
     if (p > 0.8) return "bg-red-600";
     if (p > 0.5) return "bg-yellow-500";
-
     return "bg-green-600";
+  };
+
+  /*
+  ==================================================
+  VERDICT ESCALATION
+  ==================================================
+  */
+
+  const verdictLabel = () => {
+    if (riskProbability > 0.8) return "CHEATING";
+    if (riskProbability > 0.5) return "SUSPICIOUS";
+    return "NORMAL";
   };
 
   /*
@@ -190,9 +222,7 @@ export default function ProctorDashboardPage() {
           ))}
         </div>
 
-        {/* =========================
-            OVERVIEW
-        ========================= */}
+        {/* OVERVIEW */}
 
         {activeTab === "overview" && (
           <div className="space-y-6">
@@ -217,9 +247,7 @@ export default function ProctorDashboardPage() {
           </div>
         )}
 
-        {/* =========================
-            SESSIONS TAB
-        ========================= */}
+        {/* SESSIONS TAB */}
 
         {activeTab === "sessions" && (
           <div className="bg-white shadow rounded p-6">
@@ -280,36 +308,23 @@ export default function ProctorDashboardPage() {
 
                 {/* STUDENT HEADER */}
 
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-xl font-semibold">
-                      {selectedStudent.examinee_name}
-                    </h2>
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    {selectedStudent.examinee_name}
+                  </h2>
 
-                    <p className="text-sm text-gray-600">
-                      {selectedStudent.course} • {selectedStudent.year_level}
-                    </p>
+                  <p className="text-sm text-gray-600">
+                    {selectedStudent.course} • {selectedStudent.year_level}
+                  </p>
 
-                    <p className="text-sm text-gray-600">
-                      {selectedExam.title}
-                    </p>
+                  <p className="text-sm text-gray-600">{selectedExam.title}</p>
 
-                    <div className="flex gap-6 text-sm text-gray-600 mt-1">
-                      <span>
-                        Status:
-                        <span className="font-medium ml-1">
-                          {selectedStudent.status}
-                        </span>
-                      </span>
-
-                      <span>
-                        Score:
-                        <span className="font-medium ml-1">
-                          {selectedStudent.score ?? 0} /
-                          {selectedStudent.max_score ?? 0}
-                        </span>
-                      </span>
-                    </div>
+                  <div className="flex gap-6 text-sm text-gray-600 mt-1">
+                    <span>Status: {selectedStudent.status}</span>
+                    <span>
+                      Score: {selectedStudent.score ?? 0} /
+                      {selectedStudent.max_score ?? 0}
+                    </span>
                   </div>
                 </div>
 
@@ -322,10 +337,8 @@ export default function ProctorDashboardPage() {
 
                   <div className="w-full h-4 bg-gray-200 rounded">
                     <div
-                      className={`${riskColor(riskProbability)} h-4 rounded`}
-                      style={{
-                        width: `${riskProbability * 100}%`,
-                      }}
+                      className={`${riskColor(riskProbability)} h-4 rounded transition-all duration-700`}
+                      style={{ width: `${riskProbability * 100}%` }}
                     />
                   </div>
 
@@ -334,24 +347,28 @@ export default function ProctorDashboardPage() {
                   </p>
                 </div>
 
+                {/* AI SESSION VERDICT */}
+
+                <div className="mt-6 border rounded p-4">
+                  <h3 className="font-semibold mb-2">AI Session Verdict</h3>
+
+                  <p>Behavioral: {verdictLabel()}</p>
+                  <p>Confidence: {(riskProbability * 100).toFixed(2)}%</p>
+                </div>
+
                 {/* BEHAVIORAL TIMELINE */}
 
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3">Behavioral Timeline</h3>
 
-                  {behaviorLogs.map((log) => (
-                    <div key={log.question_index} className="mb-3">
-                      <p className="text-sm font-medium">
-                        Question {log.question_index}
+                  {behaviorLogs.map((log, idx) => (
+                    <div key={idx} className="mb-3 text-sm">
+                      <p className="font-medium">
+                        Q{log.question_index ?? "-"} — {log.final_label}
                       </p>
 
                       <p className="text-xs text-gray-500">
-                        Label: {log.final_label}
-                      </p>
-
-                      <p className="text-xs text-gray-500">
-                        Avg Probability:
-                        {(log.avg_probability * 100).toFixed(1)}%
+                        Confidence: {(log.avg_probability * 100).toFixed(1)}%
                       </p>
                     </div>
                   ))}
@@ -375,7 +392,6 @@ export default function ProctorDashboardPage() {
                     >
                       <div>
                         <p className="font-medium">{log.event_type}</p>
-
                         <span className="text-xs text-gray-500">
                           Severity: {log.severity}
                         </span>
