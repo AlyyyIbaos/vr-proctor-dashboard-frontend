@@ -8,6 +8,7 @@ import StudentProfilePage from "./pages/StudentProfilePage";
 import ProctorDashboardPage from "./pages/ProctorDashboardPage";
 import ProctorSessionLivePage from "./pages/ProctorSessionLivePage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ProctorExamBuilderPage from "./pages/ProctorExamBuilderPage";
 
 function App() {
   return (
