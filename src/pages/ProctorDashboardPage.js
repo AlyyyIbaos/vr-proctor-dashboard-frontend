@@ -94,35 +94,29 @@ export default function ProctorDashboardPage() {
 
     console.log("🔗 Monitoring session:", sessionId);
 
-    /*
-    ==========================
-    ALERT HANDLER
-    ==========================
-    */
+    const mapLabel = (severity) => {
+      if (severity === "low") return "normal";
+      if (severity === "medium") return "suspicious";
+      if (severity === "high") return "suspicious";
+      return severity;
+    };
 
     const handleAlert = (alert) => {
       if (alert.session_id !== sessionId) return;
 
       console.log("🚨 Alert received:", alert);
 
-      /*
-      Behavioral AI Detection
-      */
-
       if (alert.event_type === "behavioral") {
         setBehaviorLogs((prev) => [
           {
             question_index: alert.question_index,
-            final_label: alert.severity,
+            final_label: mapLabel(alert.severity),
             avg_probability: alert.confidence_level,
+            detected_at: alert.detected_at,
           },
           ...prev,
         ]);
       }
-
-      /*
-      Runtime Security Logs
-      */
 
       if (
         alert.event_type === "object injection" ||
@@ -131,12 +125,6 @@ export default function ProctorDashboardPage() {
         setRuntimeLogs((prev) => [alert, ...prev]);
       }
     };
-
-    /*
-    ==========================
-    LIVE AI RISK SCORE
-    ==========================
-    */
 
     const handleLiveStatus = (data) => {
       if (data.session_id === sessionId) {
@@ -247,7 +235,7 @@ export default function ProctorDashboardPage() {
           </div>
         )}
 
-        {/* SESSIONS TAB */}
+        {/* SESSION VIEW */}
 
         {activeTab === "sessions" && (
           <div className="bg-white shadow rounded p-6">
@@ -306,8 +294,6 @@ export default function ProctorDashboardPage() {
                   ← Back to Examinees
                 </button>
 
-                {/* STUDENT HEADER */}
-
                 <div>
                   <h2 className="text-xl font-semibold">
                     {selectedStudent.examinee_name}
@@ -321,6 +307,7 @@ export default function ProctorDashboardPage() {
 
                   <div className="flex gap-6 text-sm text-gray-600 mt-1">
                     <span>Status: {selectedStudent.status}</span>
+
                     <span>
                       Score: {selectedStudent.score ?? 0} /
                       {selectedStudent.max_score ?? 0}
@@ -328,7 +315,7 @@ export default function ProctorDashboardPage() {
                   </div>
                 </div>
 
-                {/* AI THREAT PROBABILITY */}
+                {/* AI THREAT */}
 
                 <div className="mt-4">
                   <p className="text-sm text-gray-500 mb-2">
@@ -337,8 +324,12 @@ export default function ProctorDashboardPage() {
 
                   <div className="w-full h-4 bg-gray-200 rounded">
                     <div
-                      className={`${riskColor(riskProbability)} h-4 rounded transition-all duration-700`}
-                      style={{ width: `${riskProbability * 100}%` }}
+                      className={`${riskColor(
+                        riskProbability,
+                      )} h-4 rounded transition-all duration-700`}
+                      style={{
+                        width: `${riskProbability * 100}%`,
+                      }}
                     />
                   </div>
 
@@ -347,12 +338,13 @@ export default function ProctorDashboardPage() {
                   </p>
                 </div>
 
-                {/* AI SESSION VERDICT */}
+                {/* AI VERDICT */}
 
                 <div className="mt-6 border rounded p-4">
                   <h3 className="font-semibold mb-2">AI Session Verdict</h3>
 
                   <p>Behavioral: {verdictLabel()}</p>
+
                   <p>Confidence: {(riskProbability * 100).toFixed(2)}%</p>
                 </div>
 
@@ -364,17 +356,21 @@ export default function ProctorDashboardPage() {
                   {behaviorLogs.map((log, idx) => (
                     <div key={idx} className="mb-3 text-sm">
                       <p className="font-medium">
-                        Q{log.question_index ?? "-"} — {log.final_label}
+                        {new Date(log.detected_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}{" "}
+                        — Q{log.question_index} — {log.final_label}
                       </p>
 
                       <p className="text-xs text-gray-500">
-                        Confidence: {(log.avg_probability * 100).toFixed(1)}%
+                        Confidence: {(log.avg_probability * 100).toFixed(0)}%
                       </p>
                     </div>
                   ))}
                 </div>
 
-                {/* RUNTIME SECURITY LOGS */}
+                {/* RUNTIME SECURITY */}
 
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3">Runtime Security Logs</h3>
@@ -392,6 +388,7 @@ export default function ProctorDashboardPage() {
                     >
                       <div>
                         <p className="font-medium">{log.event_type}</p>
+
                         <span className="text-xs text-gray-500">
                           Severity: {log.severity}
                         </span>
