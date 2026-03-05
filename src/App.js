@@ -63,6 +63,10 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/proctor/exam-builder"
+          element={<ProctorExamBuilderPage />}
+        />
       </Routes>
     </Router>
   );
