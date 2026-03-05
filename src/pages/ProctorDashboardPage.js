@@ -15,6 +15,43 @@ export default function ProctorDashboardPage() {
 
   const [riskProbability, setRiskProbability] = useState(0);
 
+  /* ==================================================
+  EXAM BUILDER STATES
+  ================================================== */
+
+  const [examId, setExamId] = useState("");
+  const [questionText, setQuestionText] = useState("");
+  const [questionType, setQuestionType] = useState("MCQ");
+
+  const [choiceA, setChoiceA] = useState("");
+  const [choiceB, setChoiceB] = useState("");
+  const [choiceC, setChoiceC] = useState("");
+  const [choiceD, setChoiceD] = useState("");
+
+  const saveQuestion = async () => {
+    const choices = [
+      { label: "A", text: choiceA },
+      { label: "B", text: choiceB },
+      { label: "C", text: choiceC },
+      { label: "D", text: choiceD },
+    ];
+
+    try {
+      await api.post(`/exams/admin/${examId}/questions`, {
+        question_index: 1,
+        question_type: questionType,
+        question_text: questionText,
+        time_limit: 60,
+        choices,
+      });
+
+      alert("Question added");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add question");
+    }
+  };
+
   /*
   ==================================================
   FETCH LIVE EXAMS
@@ -191,7 +228,7 @@ export default function ProctorDashboardPage() {
         {/* NAV TABS */}
 
         <div className="flex space-x-8 border-b pb-3">
-          {["overview", "sessions"].map((tab) => (
+          {["overview", "sessions", "exam-builder"].map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -315,8 +352,6 @@ export default function ProctorDashboardPage() {
                   </div>
                 </div>
 
-                {/* AI THREAT */}
-
                 <div className="mt-4">
                   <p className="text-sm text-gray-500 mb-2">
                     AI Threat Probability
@@ -338,8 +373,6 @@ export default function ProctorDashboardPage() {
                   </p>
                 </div>
 
-                {/* AI VERDICT */}
-
                 <div className="mt-6 border rounded p-4">
                   <h3 className="font-semibold mb-2">AI Session Verdict</h3>
 
@@ -347,8 +380,6 @@ export default function ProctorDashboardPage() {
 
                   <p>Confidence: {(riskProbability * 100).toFixed(2)}%</p>
                 </div>
-
-                {/* BEHAVIORAL TIMELINE */}
 
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3">Behavioral Timeline</h3>
@@ -369,8 +400,6 @@ export default function ProctorDashboardPage() {
                     </div>
                   ))}
                 </div>
-
-                {/* RUNTIME SECURITY */}
 
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3">Runtime Security Logs</h3>
@@ -402,6 +431,68 @@ export default function ProctorDashboardPage() {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* EXAM BUILDER */}
+
+        {activeTab === "exam-builder" && (
+          <div className="bg-white shadow rounded p-6 space-y-4">
+            <h3 className="font-semibold text-lg">Exam Builder</h3>
+
+            <input
+              className="border p-2 w-full"
+              placeholder="Exam ID"
+              value={examId}
+              onChange={(e) => setExamId(e.target.value)}
+            />
+
+            <textarea
+              className="border p-2 w-full"
+              placeholder="Question text"
+              value={questionText}
+              onChange={(e) => setQuestionText(e.target.value)}
+            />
+
+            <select
+              className="border p-2"
+              value={questionType}
+              onChange={(e) => setQuestionType(e.target.value)}
+            >
+              <option value="MCQ">MCQ</option>
+              <option value="TF">True / False</option>
+            </select>
+
+            <input
+              className="border p-2 w-full"
+              placeholder="Choice A"
+              onChange={(e) => setChoiceA(e.target.value)}
+            />
+
+            <input
+              className="border p-2 w-full"
+              placeholder="Choice B"
+              onChange={(e) => setChoiceB(e.target.value)}
+            />
+
+            <input
+              className="border p-2 w-full"
+              placeholder="Choice C"
+              onChange={(e) => setChoiceC(e.target.value)}
+            />
+
+            <input
+              className="border p-2 w-full"
+              placeholder="Choice D"
+              onChange={(e) => setChoiceD(e.target.value)}
+            />
+
+            <button
+              onClick={saveQuestion}
+              className="bg-red-600 text-white px-4 py-2 rounded"
+            >
+              Save Question
+            </button>
           </div>
         )}
       </div>
