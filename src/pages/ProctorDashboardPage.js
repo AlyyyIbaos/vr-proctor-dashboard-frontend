@@ -127,8 +127,9 @@ export default function ProctorDashboardPage() {
 
     const sessionId = selectedStudent.id;
 
-    socket.emit("join_session", sessionId);
-
+    socket.on("connect", () => {
+      socket.emit("join_session", sessionId);
+    });
     console.log("🔗 Monitoring session:", sessionId);
 
     const mapLabel = (severity) => {
