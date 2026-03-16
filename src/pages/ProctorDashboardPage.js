@@ -15,6 +15,12 @@ export default function ProctorDashboardPage() {
 
   const [riskProbability, setRiskProbability] = useState(0);
 
+  /* =========================
+     FINAL VERDICT STATE
+  ========================= */
+
+  const [finalVerdict, setFinalVerdict] = useState(null);
+
   /*
   ==================================================
   FETCH LIVE EXAMS
@@ -145,14 +151,31 @@ export default function ProctorDashboardPage() {
       }
     };
 
+    /*
+    ==========================
+    FINAL SESSION VERDICT
+    ==========================
+    */
+
+    const handleSessionFinalized = (data) => {
+      if (data.session_id === sessionId) {
+        console.log("🏁 Final verdict:", data.final_verdict);
+
+        setFinalVerdict(data.final_verdict);
+        setRiskProbability(data.overall_probability);
+      }
+    };
+
     socket.on("new_alert", handleAlert);
     socket.on("live_status", handleLiveStatus);
+    socket.on("session_finalized", handleSessionFinalized);
 
     return () => {
       socket.emit("leave_session", sessionId);
 
       socket.off("new_alert", handleAlert);
       socket.off("live_status", handleLiveStatus);
+      socket.off("session_finalized", handleSessionFinalized);
     };
   }, [selectedStudent]);
 
@@ -272,6 +295,7 @@ export default function ProctorDashboardPage() {
                     onClick={() => {
                       setSelectedStudent(student);
                       setRiskProbability(0);
+                      setFinalVerdict(null);
                     }}
                     className="border rounded p-3 mb-2 cursor-pointer hover:shadow flex justify-between"
                   >
@@ -335,14 +359,16 @@ export default function ProctorDashboardPage() {
                   </p>
                 </div>
 
-                {/* AI SESSION VERDICT */}
+                {/* FINAL VERDICT */}
 
                 <div className="mt-6 border rounded p-4">
                   <h3 className="font-semibold mb-2">AI Session Verdict</h3>
 
                   <p>
-                    Behavioral: {riskProbability > 0.8 ? "CHEATING" : "NORMAL"}
+                    Behavioral:{" "}
+                    {finalVerdict ? finalVerdict.toUpperCase() : "PROCESSING"}
                   </p>
+
                   <p>Confidence: {(riskProbability * 100).toFixed(2)}%</p>
                 </div>
 
