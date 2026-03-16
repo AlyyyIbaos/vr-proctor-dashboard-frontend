@@ -13,7 +13,7 @@ export default function ProctorExamBuilderPage() {
   ========================= */
 
   const [exams, setExams] = useState([]);
-  const [selectedExam, setSelectedExam] = useState(null);
+  const [, setSelectedExam] = useState(null);
 
   const fetchExams = async () => {
     try {
