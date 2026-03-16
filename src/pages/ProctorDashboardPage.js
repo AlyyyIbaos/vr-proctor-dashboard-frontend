@@ -14,10 +14,6 @@ export default function ProctorDashboardPage() {
   const [activityFeed, setActivityFeed] = useState([]);
   const [riskProbability, setRiskProbability] = useState(0);
 
-  /* ==============================
-     NEW: FINAL SESSION DATA
-  ============================== */
-
   const [finalVerdict, setFinalVerdict] = useState(null);
   const [finalScore, setFinalScore] = useState(null);
 
@@ -132,13 +128,7 @@ export default function ProctorDashboardPage() {
           ? `Behavioral detection (Q${alert.question_index})`
           : alert.event_type;
 
-      setActivityFeed((prev) => [
-        {
-          time: timestamp,
-          message,
-        },
-        ...prev,
-      ]);
+      setActivityFeed((prev) => [{ time: timestamp, message }, ...prev]);
 
       if (alert.event_type === "behavioral") {
         setBehaviorLogs((prev) => [
@@ -165,10 +155,6 @@ export default function ProctorDashboardPage() {
         setRiskProbability(data.prob_cheat);
       }
     };
-
-    /* =====================================
-       NEW: FINAL SESSION VERDICT LISTENER
-    ===================================== */
 
     const handleSessionFinalized = (data) => {
       if (data.session_id !== sessionId) return;
@@ -203,18 +189,6 @@ export default function ProctorDashboardPage() {
     };
   }, [selectedStudent]);
 
-  const riskColor = (p) => {
-    if (p > 0.8) return "bg-red-600";
-    if (p > 0.5) return "bg-yellow-500";
-    return "bg-green-600";
-  };
-
-  const verdictLabel = () => {
-    if (riskProbability > 0.8) return "CHEATING";
-    if (riskProbability > 0.5) return "SUSPICIOUS";
-    return "NORMAL";
-  };
-
   const totalSessions = exams.reduce(
     (acc, exam) => acc + (exam.sessions?.length || 0),
     0,
@@ -224,22 +198,7 @@ export default function ProctorDashboardPage() {
     const flagged =
       exam.sessions?.filter((s) => s.status === "flagged").length || 0;
     return acc + flagged;
-  }, 0);
-
-  /* ======================================
-     TEMP USAGE TO PREVENT ESLINT ERRORS
-  ====================================== */
-
-  void selectedExam;
-  void runtimeLogs;
-  void behaviorLogs;
-  void activityFeed;
-  void finalVerdict;
-  void finalScore;
-  void riskColor;
-  void verdictLabel;
-  void totalSessions;
-  void flaggedSessions;
+  }, []);
 
   return (
     <StudentLayout>
@@ -266,7 +225,97 @@ export default function ProctorDashboardPage() {
           ))}
         </div>
 
-        {/* TAB CONTENT */}
+        {/* ===============================
+           OVERVIEW TAB
+        =============================== */}
+
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-3 gap-6">
+              <div className="bg-white shadow rounded p-5">
+                <p className="text-gray-500 text-sm">Active Examinees</p>
+                <p className="text-2xl font-semibold">{totalSessions}</p>
+              </div>
+
+              <div className="bg-white shadow rounded p-5">
+                <p className="text-gray-500 text-sm">Flagged Sessions</p>
+                <p className="text-2xl font-semibold text-red-600">
+                  {flaggedSessions}
+                </p>
+              </div>
+
+              <div className="bg-white shadow rounded p-5">
+                <p className="text-gray-500 text-sm">Average Risk Score</p>
+                <p className="text-2xl font-semibold">
+                  {(riskProbability * 100).toFixed(0)}%
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white shadow rounded p-5">
+              <h3 className="font-semibold mb-4">Runtime Security Logs</h3>
+
+              {runtimeLogs.length === 0 && (
+                <p className="text-gray-400 text-sm">No runtime detections</p>
+              )}
+
+              {runtimeLogs.map((log, i) => (
+                <div
+                  key={i}
+                  className="flex justify-between border-b py-2 text-sm"
+                >
+                  <span>{log.event_type}</span>
+                  <span className="text-gray-400">
+                    {new Date(log.detected_at).toLocaleTimeString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ===============================
+           SESSIONS TAB
+        =============================== */}
+
+        {activeTab === "sessions" && (
+          <div className="bg-white shadow rounded p-5">
+            <h3 className="font-semibold mb-4">Active Sessions</h3>
+
+            {exams.length === 0 && (
+              <p className="text-gray-400">No active sessions</p>
+            )}
+
+            {exams.map((exam) =>
+              exam.sessions?.map((session) => (
+                <div
+                  key={session.id}
+                  className="border-b py-3 flex justify-between items-center"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {session.examinee_name || "Student"}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Session ID: {session.id}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setSelectedStudent(session)}
+                    className="text-blue-600 text-sm"
+                  >
+                    Monitor
+                  </button>
+                </div>
+              )),
+            )}
+          </div>
+        )}
+
+        {/* ===============================
+           EXAM BUILDER TAB
+        =============================== */}
 
         {activeTab === "exam-builder" && <ProctorExamBuilderPage />}
       </div>
