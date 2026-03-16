@@ -141,11 +141,14 @@ export default function ProctorDashboardPage() {
 
     return acc + flagged;
   }, 0);
+
   void runtimeLogs;
 
   return (
     <StudentLayout>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* NAVIGATION */}
+
         <div className="flex space-x-8 border-b pb-3">
           {["overview", "sessions"].map((tab) => (
             <button
@@ -166,48 +169,108 @@ export default function ProctorDashboardPage() {
           ))}
         </div>
 
+        {/* OVERVIEW */}
+
         {activeTab === "overview" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white shadow rounded p-4">
-                <p className="text-sm text-gray-500">Active Examinees</p>
-                <p className="text-2xl font-bold">{totalSessions}</p>
-              </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white shadow rounded p-4">
+              <p className="text-sm text-gray-500">Active Examinees</p>
+              <p className="text-2xl font-bold">{totalSessions}</p>
+            </div>
 
-              <div className="bg-white shadow rounded p-4">
-                <p className="text-sm text-gray-500">Flagged Sessions</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {flaggedSessions}
-                </p>
-              </div>
+            <div className="bg-white shadow rounded p-4">
+              <p className="text-sm text-gray-500">Flagged Sessions</p>
+              <p className="text-2xl font-bold text-red-600">
+                {flaggedSessions}
+              </p>
+            </div>
 
-              <div className="bg-white shadow rounded p-4">
-                <p className="text-sm text-gray-500">System Status</p>
-                <p className="text-2xl font-bold text-green-600">Monitoring</p>
-              </div>
+            <div className="bg-white shadow rounded p-4">
+              <p className="text-sm text-gray-500">System Status</p>
+              <p className="text-2xl font-bold text-green-600">Monitoring</p>
             </div>
           </div>
         )}
 
+        {/* SESSIONS */}
+
         {activeTab === "sessions" && (
           <div className="bg-white shadow rounded p-6">
-            {selectedExam && selectedStudent && (
+            {/* EXAM LIST */}
+
+            {!selectedExam && (
               <>
-                <div>
-                  <h2 className="text-xl font-semibold">
-                    {selectedStudent.examinee_name}
-                  </h2>
+                <h3 className="font-semibold mb-4">Exam Sessions</h3>
 
-                  <p className="text-sm text-gray-600">{selectedExam.title}</p>
+                {exams.map((exam) => (
+                  <div
+                    key={exam.id}
+                    onClick={() => setSelectedExam(exam)}
+                    className="border rounded p-3 mb-3 cursor-pointer hover:shadow"
+                  >
+                    {exam.title}
+                  </div>
+                ))}
+              </>
+            )}
 
-                  <div className="flex gap-6 text-sm text-gray-600 mt-1">
-                    <span>Status: {selectedStudent.status}</span>
+            {/* EXAMINEE LIST */}
 
-                    <span>
-                      Score: {examScore ?? 0}/{maxScore ?? 0}
+            {selectedExam && !selectedStudent && (
+              <>
+                <button
+                  onClick={() => setSelectedExam(null)}
+                  className="text-sm text-gray-500 mb-4"
+                >
+                  ← Back
+                </button>
+
+                <h3 className="font-semibold mb-4">{selectedExam.title}</h3>
+
+                {selectedExam.sessions?.map((student) => (
+                  <div
+                    key={student.id}
+                    onClick={() => {
+                      setSelectedStudent(student);
+                      setRiskProbability(0);
+                      setFinalVerdict(null);
+                    }}
+                    className="border rounded p-3 mb-2 cursor-pointer hover:shadow flex justify-between"
+                  >
+                    <span>{student.examinee_name}</span>
+                    <span className="text-sm text-gray-500">
+                      {student.status}
                     </span>
                   </div>
+                ))}
+              </>
+            )}
+
+            {/* MONITORING VIEW */}
+
+            {selectedExam && selectedStudent && (
+              <>
+                <button
+                  onClick={() => setSelectedStudent(null)}
+                  className="text-sm text-gray-500 mb-4"
+                >
+                  ← Back to Examinees
+                </button>
+
+                <h2 className="text-xl font-semibold">
+                  {selectedStudent.examinee_name}
+                </h2>
+
+                <p className="text-sm text-gray-600">{selectedExam.title}</p>
+
+                <div className="flex gap-6 text-sm text-gray-600 mt-1">
+                  <span>Status: {selectedStudent.status}</span>
+                  <span>
+                    Score: {examScore ?? 0}/{maxScore ?? 0}
+                  </span>
                 </div>
+
+                {/* AI THREAT BAR */}
 
                 <div className="mt-4">
                   <p className="text-sm text-gray-500 mb-2">
@@ -225,6 +288,8 @@ export default function ProctorDashboardPage() {
                     {(riskProbability * 100).toFixed(2)}%
                   </p>
                 </div>
+
+                {/* FINAL VERDICT */}
 
                 <div className="mt-6 border rounded p-4">
                   <h3 className="font-semibold mb-2">AI Session Verdict</h3>
@@ -250,6 +315,8 @@ export default function ProctorDashboardPage() {
                     </div>
                   )}
                 </div>
+
+                {/* BEHAVIORAL TIMELINE */}
 
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3">Behavioral Timeline</h3>
