@@ -141,6 +141,7 @@ export default function ProctorDashboardPage() {
 
     return acc + flagged;
   }, 0);
+  void runtimeLogs;
 
   return (
     <StudentLayout>
