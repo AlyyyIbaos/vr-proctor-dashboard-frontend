@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import StudentLayout from "../components/layout/StudentLayout";
 import api from "../api";
 import socket from "../services/socket";
-import ProctorExamBuilderPage from "../pages/ProctorExamBuilderPage";
 
 export default function ProctorDashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
