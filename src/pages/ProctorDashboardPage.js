@@ -2,80 +2,66 @@ import { useEffect, useState } from "react";
 import StudentLayout from "../components/layout/StudentLayout";
 import api from "../api";
 import socket from "../services/socket";
+import ProctorExamBuilderPage from "../pages/ProctorExamBuilderPage";
 
 export default function ProctorDashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
-
   const [exams, setExams] = useState([]);
   const [selectedExam, setSelectedExam] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
-
   const [runtimeLogs, setRuntimeLogs] = useState([]);
   const [behaviorLogs, setBehaviorLogs] = useState([]);
-
+  const [activityFeed, setActivityFeed] = useState([]);
   const [riskProbability, setRiskProbability] = useState(0);
 
+  /* ==============================
+     NEW: FINAL SESSION DATA
+  ============================== */
+
+  const [finalVerdict, setFinalVerdict] = useState(null);
+  const [finalScore, setFinalScore] = useState(null);
+
   /* ==================================================
-  EXAM BUILDER STATES
+     FETCH LIVE EXAMS
   ================================================== */
 
-  const [examId, setExamId] = useState("");
-  const [questionText, setQuestionText] = useState("");
-  const [questionType, setQuestionType] = useState("MCQ");
-
-  const [choiceA, setChoiceA] = useState("");
-  const [choiceB, setChoiceB] = useState("");
-  const [choiceC, setChoiceC] = useState("");
-  const [choiceD, setChoiceD] = useState("");
-
-  const saveQuestion = async () => {
-    const choices = [
-      { label: "A", text: choiceA },
-      { label: "B", text: choiceB },
-      { label: "C", text: choiceC },
-      { label: "D", text: choiceD },
-    ];
-
+  const fetchExams = async () => {
     try {
-      await api.post(`/exams/admin/${examId}/questions`, {
-        question_index: 1,
-        question_type: questionType,
-        question_text: questionText,
-        time_limit: 60,
-        choices,
-      });
-
-      alert("Question added");
+      const res = await api.get("/exams/live");
+      setExams(res.data || []);
     } catch (err) {
-      console.error(err);
-      alert("Failed to add question");
+      console.error("Failed to fetch live exams:", err);
     }
   };
 
-  /*
-  ==================================================
-  FETCH LIVE EXAMS
-  ==================================================
-  */
-
   useEffect(() => {
-    const fetchExams = async () => {
-      try {
-        const res = await api.get("/exams/live");
-        setExams(res.data || []);
-      } catch (err) {
-        console.error("Failed to fetch live exams:", err);
-      }
-    };
-
     fetchExams();
   }, []);
 
-  /*
-  ==================================================
-  FETCH RUNTIME SECURITY LOGS
-  ==================================================
-  */
+  useEffect(() => {
+    if (activeTab === "overview") {
+      fetchExams();
+    }
+  }, [activeTab]);
+
+  /* ==================================================
+     AUTO UPDATE WHEN NEW SESSION STARTS
+  ================================================== */
+
+  useEffect(() => {
+    socket.on("new_session_started", () => {
+      console.log("New VR session detected");
+      fetchExams();
+    });
+
+    return () => {
+      socket.off("new_session_started");
+    };
+  }, []);
+
+  /* ==================================================
+     FETCH RUNTIME SECURITY LOGS
+  ================================================== */
 
   useEffect(() => {
     if (!selectedStudent) return;
@@ -92,11 +78,9 @@ export default function ProctorDashboardPage() {
     fetchRuntimeLogs();
   }, [selectedStudent]);
 
-  /*
-  ==================================================
-  FETCH BEHAVIORAL TIMELINE
-  ==================================================
-  */
+  /* ==================================================
+     FETCH BEHAVIORAL TIMELINE
+  ================================================== */
 
   useEffect(() => {
     if (!selectedStudent) return;
@@ -106,7 +90,6 @@ export default function ProctorDashboardPage() {
         const res = await api.get(
           `/aggregation/${selectedStudent.id}/behavioral-report`,
         );
-
         setBehaviorLogs(res.data || []);
       } catch (err) {
         console.error("Behavioral logs fetch error:", err);
@@ -116,11 +99,9 @@ export default function ProctorDashboardPage() {
     fetchBehaviorLogs();
   }, [selectedStudent]);
 
-  /*
-  ==================================================
-  SOCKET.IO REAL-TIME MONITORING
-  ==================================================
-  */
+  /* ==================================================
+     REALTIME MONITORING
+  ================================================== */
 
   useEffect(() => {
     if (!selectedStudent) return;
@@ -130,7 +111,6 @@ export default function ProctorDashboardPage() {
     socket.on("connect", () => {
       socket.emit("join_session", sessionId);
     });
-    console.log("🔗 Monitoring session:", sessionId);
 
     const mapLabel = (severity) => {
       if (severity === "low") return "normal";
@@ -142,7 +122,23 @@ export default function ProctorDashboardPage() {
     const handleAlert = (alert) => {
       if (alert.session_id !== sessionId) return;
 
-      console.log("🚨 Alert received:", alert);
+      const timestamp = new Date(alert.detected_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const message =
+        alert.event_type === "behavioral"
+          ? `Behavioral detection (Q${alert.question_index})`
+          : alert.event_type;
+
+      setActivityFeed((prev) => [
+        {
+          time: timestamp,
+          message,
+        },
+        ...prev,
+      ]);
 
       if (alert.event_type === "behavioral") {
         setBehaviorLogs((prev) => [
@@ -166,27 +162,46 @@ export default function ProctorDashboardPage() {
 
     const handleLiveStatus = (data) => {
       if (data.session_id === sessionId) {
-        console.log("📊 Live AI probability:", data.prob_cheat);
         setRiskProbability(data.prob_cheat);
       }
     };
 
+    /* =====================================
+       NEW: FINAL SESSION VERDICT LISTENER
+    ===================================== */
+
+    const handleSessionFinalized = (data) => {
+      if (data.session_id !== sessionId) return;
+
+      setRiskProbability(data.overall_probability);
+      setFinalVerdict(data.final_verdict);
+      setFinalScore(`${data.score}/${data.max_score}`);
+
+      const timestamp = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      setActivityFeed((prev) => [
+        {
+          time: timestamp,
+          message: `Session finalized → ${data.final_verdict.toUpperCase()} (Score ${data.score}/${data.max_score})`,
+        },
+        ...prev,
+      ]);
+    };
+
     socket.on("new_alert", handleAlert);
     socket.on("live_status", handleLiveStatus);
+    socket.on("session_finalized", handleSessionFinalized);
 
     return () => {
       socket.emit("leave_session", sessionId);
-
       socket.off("new_alert", handleAlert);
       socket.off("live_status", handleLiveStatus);
+      socket.off("session_finalized", handleSessionFinalized);
     };
   }, [selectedStudent]);
-
-  /*
-  ==================================================
-  RISK BAR COLOR
-  ==================================================
-  */
 
   const riskColor = (p) => {
     if (p > 0.8) return "bg-red-600";
@@ -194,39 +209,27 @@ export default function ProctorDashboardPage() {
     return "bg-green-600";
   };
 
-  /*
-  ==================================================
-  VERDICT ESCALATION
-  ==================================================
-  */
-
   const verdictLabel = () => {
     if (riskProbability > 0.8) return "CHEATING";
     if (riskProbability > 0.5) return "SUSPICIOUS";
     return "NORMAL";
   };
 
-  /*
-  ==================================================
-  OVERVIEW STATS
-  ==================================================
-  */
-
-  const totalSessions = exams.reduce((acc, exam) => {
-    return acc + (exam.sessions?.length || 0);
-  }, 0);
+  const totalSessions = exams.reduce(
+    (acc, exam) => acc + (exam.sessions?.length || 0),
+    0,
+  );
 
   const flaggedSessions = exams.reduce((acc, exam) => {
     const flagged =
       exam.sessions?.filter((s) => s.status === "flagged").length || 0;
-
     return acc + flagged;
   }, 0);
 
   return (
     <StudentLayout>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* NAV TABS */}
+        {/* NAVIGATION TABS */}
 
         <div className="flex space-x-8 border-b pb-3">
           {["overview", "sessions", "exam-builder"].map((tab) => (
@@ -248,254 +251,9 @@ export default function ProctorDashboardPage() {
           ))}
         </div>
 
-        {/* OVERVIEW */}
+        {/* TAB CONTENT */}
 
-        {activeTab === "overview" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white shadow rounded p-4">
-                <p className="text-sm text-gray-500">Active Examinees</p>
-                <p className="text-2xl font-bold">{totalSessions}</p>
-              </div>
-
-              <div className="bg-white shadow rounded p-4">
-                <p className="text-sm text-gray-500">Flagged Sessions</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {flaggedSessions}
-                </p>
-              </div>
-
-              <div className="bg-white shadow rounded p-4">
-                <p className="text-sm text-gray-500">System Status</p>
-                <p className="text-2xl font-bold text-green-600">Monitoring</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* SESSION VIEW */}
-
-        {activeTab === "sessions" && (
-          <div className="bg-white shadow rounded p-6">
-            {!selectedExam && (
-              <>
-                <h3 className="font-semibold mb-4">Exam Sessions</h3>
-
-                {exams.map((exam) => (
-                  <div
-                    key={exam.id}
-                    onClick={() => setSelectedExam(exam)}
-                    className="border rounded p-3 mb-3 cursor-pointer hover:shadow"
-                  >
-                    {exam.title}
-                  </div>
-                ))}
-              </>
-            )}
-
-            {selectedExam && !selectedStudent && (
-              <>
-                <button
-                  onClick={() => setSelectedExam(null)}
-                  className="text-sm text-gray-500 mb-4"
-                >
-                  ← Back
-                </button>
-
-                <h3 className="font-semibold mb-4">{selectedExam.title}</h3>
-
-                {selectedExam.sessions.map((student) => (
-                  <div
-                    key={student.id}
-                    onClick={() => {
-                      setSelectedStudent(student);
-                      setRiskProbability(0);
-                    }}
-                    className="border rounded p-3 mb-2 cursor-pointer hover:shadow flex justify-between"
-                  >
-                    <span>{student.examinee_name}</span>
-
-                    <span className="text-sm text-gray-500">
-                      {student.status}
-                    </span>
-                  </div>
-                ))}
-              </>
-            )}
-
-            {selectedExam && selectedStudent && (
-              <>
-                <button
-                  onClick={() => setSelectedStudent(null)}
-                  className="text-sm text-gray-500 mb-4"
-                >
-                  ← Back to Examinees
-                </button>
-
-                <div>
-                  <h2 className="text-xl font-semibold">
-                    {selectedStudent.examinee_name}
-                  </h2>
-
-                  <p className="text-sm text-gray-600">
-                    {selectedStudent.course} • {selectedStudent.year_level}
-                  </p>
-
-                  <p className="text-sm text-gray-600">{selectedExam.title}</p>
-
-                  <div className="flex gap-6 text-sm text-gray-600 mt-1">
-                    <span>Status: {selectedStudent.status}</span>
-
-                    <span>
-                      Score: {selectedStudent.score ?? 0} /
-                      {selectedStudent.max_score ?? 0}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <p className="text-sm text-gray-500 mb-2">
-                    AI Threat Probability
-                  </p>
-
-                  <div className="w-full h-4 bg-gray-200 rounded">
-                    <div
-                      className={`${riskColor(
-                        riskProbability,
-                      )} h-4 rounded transition-all duration-700`}
-                      style={{
-                        width: `${riskProbability * 100}%`,
-                      }}
-                    />
-                  </div>
-
-                  <p className="text-sm mt-2">
-                    {(riskProbability * 100).toFixed(2)}%
-                  </p>
-                </div>
-
-                <div className="mt-6 border rounded p-4">
-                  <h3 className="font-semibold mb-2">AI Session Verdict</h3>
-
-                  <p>Behavioral: {verdictLabel()}</p>
-
-                  <p>Confidence: {(riskProbability * 100).toFixed(2)}%</p>
-                </div>
-
-                <div className="mt-6">
-                  <h3 className="font-semibold mb-3">Behavioral Timeline</h3>
-
-                  {behaviorLogs.map((log, idx) => (
-                    <div key={idx} className="mb-3 text-sm">
-                      <p className="font-medium">
-                        {new Date(log.detected_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}{" "}
-                        — Q{log.question_index} — {log.final_label}
-                      </p>
-
-                      <p className="text-xs text-gray-500">
-                        Confidence: {(log.avg_probability * 100).toFixed(0)}%
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6">
-                  <h3 className="font-semibold mb-3">Runtime Security Logs</h3>
-
-                  {runtimeLogs.length === 0 && (
-                    <p className="text-sm text-gray-500">
-                      No runtime violations detected.
-                    </p>
-                  )}
-
-                  {runtimeLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="border rounded p-3 mb-2 flex justify-between text-sm"
-                    >
-                      <div>
-                        <p className="font-medium">{log.event_type}</p>
-
-                        <span className="text-xs text-gray-500">
-                          Severity: {log.severity}
-                        </span>
-                      </div>
-
-                      <span className="text-gray-400">
-                        {new Date(log.detected_at).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* EXAM BUILDER */}
-
-        {activeTab === "exam-builder" && (
-          <div className="bg-white shadow rounded p-6 space-y-4">
-            <h3 className="font-semibold text-lg">Exam Builder</h3>
-
-            <input
-              className="border p-2 w-full"
-              placeholder="Exam ID"
-              value={examId}
-              onChange={(e) => setExamId(e.target.value)}
-            />
-
-            <textarea
-              className="border p-2 w-full"
-              placeholder="Question text"
-              value={questionText}
-              onChange={(e) => setQuestionText(e.target.value)}
-            />
-
-            <select
-              className="border p-2"
-              value={questionType}
-              onChange={(e) => setQuestionType(e.target.value)}
-            >
-              <option value="MCQ">MCQ</option>
-              <option value="TF">True / False</option>
-            </select>
-
-            <input
-              className="border p-2 w-full"
-              placeholder="Choice A"
-              onChange={(e) => setChoiceA(e.target.value)}
-            />
-
-            <input
-              className="border p-2 w-full"
-              placeholder="Choice B"
-              onChange={(e) => setChoiceB(e.target.value)}
-            />
-
-            <input
-              className="border p-2 w-full"
-              placeholder="Choice C"
-              onChange={(e) => setChoiceC(e.target.value)}
-            />
-
-            <input
-              className="border p-2 w-full"
-              placeholder="Choice D"
-              onChange={(e) => setChoiceD(e.target.value)}
-            />
-
-            <button
-              onClick={saveQuestion}
-              className="bg-red-600 text-white px-4 py-2 rounded"
-            >
-              Save Question
-            </button>
-          </div>
-        )}
+        {activeTab === "exam-builder" && <ProctorExamBuilderPage />}
       </div>
     </StudentLayout>
   );
