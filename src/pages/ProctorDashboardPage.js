@@ -322,8 +322,6 @@ export default function ProctorDashboardPage() {
         {/* ===============================
            EXAM BUILDER TAB
         =============================== */}
-
-        {activeTab === "exam-builder" && <ProctorExamBuilderPage />}
       </div>
     </StudentLayout>
   );
