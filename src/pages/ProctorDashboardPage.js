@@ -14,16 +14,18 @@ export default function ProctorDashboardPage() {
   const [behaviorLogs, setBehaviorLogs] = useState([]);
 
   const [riskProbability, setRiskProbability] = useState(0);
-
   const [finalVerdict, setFinalVerdict] = useState(null);
-  const [questionSummary, setQuestionSummary] = useState([]);
-  const [examScore, setExamScore] = useState(null);
-  const [maxScore, setMaxScore] = useState(null);
+  /*
+  ==================================================
+  FETCH LIVE EXAMS
+  ==================================================
+  */
 
   useEffect(() => {
     const fetchExams = async () => {
       try {
         const res = await api.get("/exams/live");
+        console.log("EXAMS:", res.data);
         setExams(res.data || []);
       } catch (err) {
         console.error("Failed to fetch live exams:", err);
@@ -32,6 +34,12 @@ export default function ProctorDashboardPage() {
 
     fetchExams();
   }, []);
+
+  /*
+  ==================================================
+  FETCH RUNTIME SECURITY LOGS
+  ==================================================
+  */
 
   useEffect(() => {
     if (!selectedStudent) return;
@@ -47,6 +55,12 @@ export default function ProctorDashboardPage() {
 
     fetchRuntimeLogs();
   }, [selectedStudent]);
+
+  /*
+  ==================================================
+  FETCH BEHAVIORAL TIMELINE
+  ==================================================
+  */
 
   useEffect(() => {
     if (!selectedStudent) return;
@@ -66,6 +80,12 @@ export default function ProctorDashboardPage() {
     fetchBehaviorLogs();
   }, [selectedStudent]);
 
+  /*
+  ==================================================
+  SOCKET.IO REAL-TIME MONITORING
+  ==================================================
+  */
+
   useEffect(() => {
     if (!selectedStudent) return;
 
@@ -73,8 +93,22 @@ export default function ProctorDashboardPage() {
 
     socket.emit("join_session", sessionId);
 
+    console.log("🔗 Monitoring session:", sessionId);
+
+    /*
+    ==========================
+    ALERT HANDLER
+    ==========================
+    */
+
     const handleAlert = (alert) => {
       if (alert.session_id !== sessionId) return;
+
+      console.log("🚨 Alert received:", alert);
+
+      /*
+      Behavioral AI Detection
+      */
 
       if (alert.event_type === "behavioral") {
         setBehaviorLogs((prev) => [
@@ -88,6 +122,10 @@ export default function ProctorDashboardPage() {
         ]);
       }
 
+      /*
+      Runtime Security Logs
+      */
+
       if (
         alert.event_type === "object injection" ||
         alert.event_type === "scene tampering"
@@ -96,20 +134,30 @@ export default function ProctorDashboardPage() {
       }
     };
 
+    /*
+    ==========================
+    LIVE AI RISK SCORE
+    ==========================
+    */
+
     const handleLiveStatus = (data) => {
       if (data.session_id === sessionId) {
+        console.log("📊 Live AI probability:", data.prob_cheat);
         setRiskProbability(data.prob_cheat);
       }
     };
 
+    /*
+==========================
+FINAL VERDICT HANDLER
+==========================
+*/
     const handleSessionFinalized = (data) => {
       if (data.session_id !== sessionId) return;
 
-      setFinalVerdict(data.final_verdict);
-      setRiskProbability(data.overall_probability);
-      setQuestionSummary(data.question_summary || []);
-      setExamScore(data.score);
-      setMaxScore(data.max_score);
+      console.log("🏁 Final Verdict Received:", data);
+
+      setFinalVerdict(data);
     };
 
     socket.on("new_alert", handleAlert);
@@ -125,11 +173,23 @@ export default function ProctorDashboardPage() {
     };
   }, [selectedStudent]);
 
+  /*
+  ==================================================
+  RISK BAR COLOR
+  ==================================================
+  */
+
   const riskColor = (p) => {
     if (p > 0.8) return "bg-red-600";
     if (p > 0.5) return "bg-yellow-500";
     return "bg-green-600";
   };
+
+  /*
+  ==================================================
+  OVERVIEW STATS
+  ==================================================
+  */
 
   const totalSessions = exams.reduce((acc, exam) => {
     return acc + (exam.sessions?.length || 0);
@@ -142,12 +202,10 @@ export default function ProctorDashboardPage() {
     return acc + flagged;
   }, 0);
 
-  void runtimeLogs;
-
   return (
     <StudentLayout>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* NAVIGATION */}
+        {/* NAV TABS */}
 
         <div className="flex space-x-8 border-b pb-3">
           {["overview", "sessions"].map((tab) => (
@@ -172,32 +230,32 @@ export default function ProctorDashboardPage() {
         {/* OVERVIEW */}
 
         {activeTab === "overview" && (
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white shadow rounded p-4">
-              <p className="text-sm text-gray-500">Active Examinees</p>
-              <p className="text-2xl font-bold">{totalSessions}</p>
-            </div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white shadow rounded p-4">
+                <p className="text-sm text-gray-500">Active Examinees</p>
+                <p className="text-2xl font-bold">{totalSessions}</p>
+              </div>
 
-            <div className="bg-white shadow rounded p-4">
-              <p className="text-sm text-gray-500">Flagged Sessions</p>
-              <p className="text-2xl font-bold text-red-600">
-                {flaggedSessions}
-              </p>
-            </div>
+              <div className="bg-white shadow rounded p-4">
+                <p className="text-sm text-gray-500">Flagged Sessions</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {flaggedSessions}
+                </p>
+              </div>
 
-            <div className="bg-white shadow rounded p-4">
-              <p className="text-sm text-gray-500">System Status</p>
-              <p className="text-2xl font-bold text-green-600">Monitoring</p>
+              <div className="bg-white shadow rounded p-4">
+                <p className="text-sm text-gray-500">System Status</p>
+                <p className="text-2xl font-bold text-green-600">Monitoring</p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* SESSIONS */}
+        {/* SESSIONS TAB */}
 
         {activeTab === "sessions" && (
           <div className="bg-white shadow rounded p-6">
-            {/* EXAM LIST */}
-
             {!selectedExam && (
               <>
                 <h3 className="font-semibold mb-4">Exam Sessions</h3>
@@ -214,8 +272,6 @@ export default function ProctorDashboardPage() {
               </>
             )}
 
-            {/* EXAMINEE LIST */}
-
             {selectedExam && !selectedStudent && (
               <>
                 <button
@@ -227,7 +283,7 @@ export default function ProctorDashboardPage() {
 
                 <h3 className="font-semibold mb-4">{selectedExam.title}</h3>
 
-                {selectedExam.sessions?.map((student) => (
+                {selectedExam.sessions.map((student) => (
                   <div
                     key={student.id}
                     onClick={() => {
@@ -238,6 +294,7 @@ export default function ProctorDashboardPage() {
                     className="border rounded p-3 mb-2 cursor-pointer hover:shadow flex justify-between"
                   >
                     <span>{student.examinee_name}</span>
+
                     <span className="text-sm text-gray-500">
                       {student.status}
                     </span>
@@ -245,8 +302,6 @@ export default function ProctorDashboardPage() {
                 ))}
               </>
             )}
-
-            {/* MONITORING VIEW */}
 
             {selectedExam && selectedStudent && (
               <>
@@ -257,20 +312,29 @@ export default function ProctorDashboardPage() {
                   ← Back to Examinees
                 </button>
 
-                <h2 className="text-xl font-semibold">
-                  {selectedStudent.examinee_name}
-                </h2>
+                {/* STUDENT HEADER */}
 
-                <p className="text-sm text-gray-600">{selectedExam.title}</p>
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    {selectedStudent.examinee_name}
+                  </h2>
 
-                <div className="flex gap-6 text-sm text-gray-600 mt-1">
-                  <span>Status: {selectedStudent.status}</span>
-                  <span>
-                    Score: {examScore ?? 0}/{maxScore ?? 0}
-                  </span>
+                  <p className="text-sm text-gray-600">
+                    {selectedStudent.course} • {selectedStudent.year_level}
+                  </p>
+
+                  <p className="text-sm text-gray-600">{selectedExam.title}</p>
+
+                  <div className="flex gap-6 text-sm text-gray-600 mt-1">
+                    <span>Status: {selectedStudent.status}</span>
+                    <span>
+                      Score: {selectedStudent.score ?? 0} /
+                      {selectedStudent.max_score ?? 0}
+                    </span>
+                  </div>
                 </div>
 
-                {/* AI THREAT BAR */}
+                {/* AI THREAT PROBABILITY */}
 
                 <div className="mt-4">
                   <p className="text-sm text-gray-500 mb-2">
@@ -289,30 +353,43 @@ export default function ProctorDashboardPage() {
                   </p>
                 </div>
 
-                {/* FINAL VERDICT */}
+                {/* AI SESSION VERDICT */}
 
                 <div className="mt-6 border rounded p-4">
                   <h3 className="font-semibold mb-2">AI Session Verdict</h3>
 
-                  <p>
-                    Behavioral:{" "}
-                    {finalVerdict ? finalVerdict.toUpperCase() : "PROCESSING"}
-                  </p>
+                  {!finalVerdict && (
+                    <>
+                      <p>Live Monitoring Active...</p>
+                      <p>Confidence: {(riskProbability * 100).toFixed(2)}%</p>
+                    </>
+                  )}
 
-                  <p>Confidence: {(riskProbability * 100).toFixed(2)}%</p>
-
-                  {questionSummary.length > 0 && (
-                    <div className="mt-3">
-                      <p className="font-semibold text-sm mb-1">
-                        Question Summary
+                  {finalVerdict && (
+                    <>
+                      <p className="font-bold">
+                        Final: {finalVerdict.final_verdict.toUpperCase()}
                       </p>
 
-                      {questionSummary.map((q) => (
-                        <p key={q.question_index} className="text-sm">
-                          Q{q.question_index} — {q.verdict.toUpperCase()}
-                        </p>
-                      ))}
-                    </div>
+                      <p>
+                        Overall Probability:{" "}
+                        {(finalVerdict.overall_probability * 100).toFixed(2)}%
+                      </p>
+
+                      <p>
+                        Score: {finalVerdict.score} / {finalVerdict.max_score}
+                      </p>
+
+                      <div className="mt-3">
+                        <p className="font-medium">Question Summary:</p>
+
+                        {finalVerdict.question_summary.map((q, i) => (
+                          <p key={i}>
+                            Q{q.question} — {q.verdict.toUpperCase()}
+                          </p>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -324,15 +401,46 @@ export default function ProctorDashboardPage() {
                   {behaviorLogs.map((log, idx) => (
                     <div key={idx} className="mb-3 text-sm">
                       <p className="font-medium">
+                        [
                         {log.detected_at
                           ? new Date(log.detected_at).toLocaleTimeString()
-                          : "--"}{" "}
-                        — Q{log.question_index ?? "-"} — {log.final_label}
+                          : "—"}
+                        ] — Q{log.question_index ?? "-"} — {log.final_label}
                       </p>
 
                       <p className="text-xs text-gray-500">
                         Confidence: {(log.avg_probability * 100).toFixed(1)}%
                       </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* RUNTIME SECURITY LOGS */}
+
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-3">Runtime Security Logs</h3>
+
+                  {runtimeLogs.length === 0 && (
+                    <p className="text-sm text-gray-500">
+                      No runtime violations detected.
+                    </p>
+                  )}
+
+                  {runtimeLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="border rounded p-3 mb-2 flex justify-between text-sm"
+                    >
+                      <div>
+                        <p className="font-medium">{log.event_type}</p>
+                        <span className="text-xs text-gray-500">
+                          Severity: {log.severity}
+                        </span>
+                      </div>
+
+                      <span className="text-gray-400">
+                        {new Date(log.detected_at).toLocaleTimeString()}
+                      </span>
                     </div>
                   ))}
                 </div>
