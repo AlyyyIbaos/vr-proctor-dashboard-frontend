@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import StudentLayout from "../components/layout/StudentLayout";
 import api from "../api";
 import socket from "../services/socket";
@@ -15,6 +15,8 @@ export default function ProctorDashboardPage() {
 
   const [riskProbability, setRiskProbability] = useState(0);
   const [finalVerdict, setFinalVerdict] = useState(null);
+
+  const [currentQuestion, setCurrentQuestion] = useState(0);
   /*
   ==================================================
   FETCH LIVE EXAMS
@@ -141,9 +143,16 @@ export default function ProctorDashboardPage() {
     */
 
     const handleLiveStatus = (data) => {
-      if (data.session_id === sessionId) {
-        console.log("📊 Live AI probability:", data.prob_cheat);
-        setRiskProbability(data.prob_cheat);
+      if (!data || data.session_id !== sessionId) return;
+      console.log("📊 LIVE STATUS FULL:", data); // 🔥 full payload
+
+      setRiskProbability(data.prob_cheat);
+
+      if (data.question_index !== undefined) {
+        console.log("🎯 CURRENT QUESTION:", data.question_index); // 🔥 debug
+        setCurrentQuestion(data.question_index);
+      } else {
+        console.warn("⚠️ question_index missing in live_status");
       }
     };
 
@@ -172,6 +181,63 @@ FINAL VERDICT HANDLER
       socket.off("session_finalized", handleSessionFinalized);
     };
   }, [selectedStudent]);
+
+  const triggerManualGlobal = useCallback(
+    async (severity) => {
+      try {
+        await api.post("/detections/manual-flag", {
+          session_id: selectedStudent.id,
+          question_index: currentQuestion,
+          severity,
+        });
+
+        console.log("🧠 Manual global flag:", severity);
+
+        setBehaviorLogs((prev) => [
+          {
+            question_index: currentQuestion,
+            final_label: severity,
+            avg_probability: severity === "high" ? 0.9 : 0.6,
+            detected_at: new Date().toISOString(),
+          },
+          ...prev,
+        ]);
+      } catch (err) {
+        console.error("Manual flag error:", err);
+      }
+    },
+    [selectedStudent, currentQuestion],
+  );
+
+  /*
+==================================================
+KEYBOARD SHORTCUT (MANUAL OVERRIDE)
+==================================================
+*/
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (!selectedStudent) return;
+
+      const tag = e.target.tagName.toLowerCase();
+      if (tag === "input" || tag === "textarea") return;
+
+      if (e.key === "m") {
+        console.log("⌨️ Manual MEDIUM triggered");
+        triggerManualGlobal("medium");
+      }
+
+      if (e.key === "h") {
+        console.log("⌨️ Manual HIGH triggered");
+        triggerManualGlobal("high");
+      }
+    };
+
+    window.addEventListener("keydown", handleKey);
+
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [selectedStudent, triggerManualGlobal]);
 
   /*
   ==================================================
@@ -353,6 +419,23 @@ FINAL VERDICT HANDLER
                   </p>
                 </div>
 
+                {/* 🔥 HIDDEN MANUAL CONTROL PANEL */}
+                <div className="mt-2 flex justify-end gap-3 opacity-10 hover:opacity-100 transition">
+                  <button
+                    onClick={() => triggerManualGlobal("medium")}
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    medium
+                  </button>
+
+                  <button
+                    onClick={() => triggerManualGlobal("high")}
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    high
+                  </button>
+                </div>
+
                 {/* AI SESSION VERDICT */}
 
                 <div className="mt-6 border rounded p-4">
@@ -405,7 +488,10 @@ FINAL VERDICT HANDLER
                   <h3 className="font-semibold mb-3">Behavioral Timeline</h3>
 
                   {behaviorLogs.map((log, idx) => (
-                    <div key={idx} className="mb-3 text-sm">
+                    <div
+                      key={idx}
+                      className="mb-3 text-sm border p-2 rounded group hover:bg-gray-50 transition"
+                    >
                       <p className="font-medium">
                         [
                         {log.detected_at
