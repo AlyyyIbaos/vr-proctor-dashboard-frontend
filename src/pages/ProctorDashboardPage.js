@@ -166,7 +166,10 @@ export default function ProctorDashboardPage() {
 
       if (!manualOverrideRef.current) {
         requestAnimationFrame(() => {
-          setRiskProbability(() => data.prob_cheat);
+          setRiskProbability((prev) => {
+            const alpha = 0.6; // smoothing factor
+            return prev * (1 - alpha) + data.prob_cheat * alpha;
+          });
         });
       }
 
@@ -239,15 +242,25 @@ FINAL VERDICT HANDLER
         setRiskProbability(randomConfidence);
 
         // 🔥 UPDATE TIMELINE
-        setBehaviorLogs((prev) => [
-          {
-            question_index: currentQuestion,
-            final_label: severity,
-            avg_probability: randomConfidence,
-            detected_at: new Date().toISOString(),
-          },
-          ...prev,
-        ]);
+        setBehaviorLogs((prev) => {
+          const exists = prev.some(
+            (p) =>
+              p.detected_at === alert.detected_at &&
+              p.question_index === alert.question_index,
+          );
+
+          if (exists) return prev;
+
+          return [
+            {
+              question_index: alert.question_index,
+              final_label: alert.severity,
+              avg_probability: alert.confidence_level,
+              detected_at: alert.detected_at,
+            },
+            ...prev,
+          ];
+        });
       } catch (err) {
         console.error("Manual flag error:", err);
       }
@@ -270,36 +283,6 @@ FINAL VERDICT HANDLER
       }
 
       if (e.key.toLowerCase() === "h") {
-        triggerManualGlobal("high");
-      }
-    };
-
-    window.addEventListener("keydown", handleKey);
-
-    return () => {
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [selectedStudent, triggerManualGlobal]);
-
-  /*
-==================================================
-KEYBOARD SHORTCUT (MANUAL OVERRIDE)
-==================================================
-*/
-  useEffect(() => {
-    const handleKey = (e) => {
-      if (!selectedStudent) return;
-
-      const tag = e.target.tagName.toLowerCase();
-      if (tag === "input" || tag === "textarea") return;
-
-      if (e.key === "m") {
-        console.log("⌨️ Manual MEDIUM triggered");
-        triggerManualGlobal("medium");
-      }
-
-      if (e.key === "h") {
-        console.log("⌨️ Manual HIGH triggered");
         triggerManualGlobal("high");
       }
     };
