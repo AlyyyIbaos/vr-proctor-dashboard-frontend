@@ -165,7 +165,9 @@ export default function ProctorDashboardPage() {
       console.log("📊 LIVE STATUS FULL:", data); // 🔥 full payload
 
       if (!manualOverrideRef.current) {
-        setRiskProbability(data.prob_cheat);
+        requestAnimationFrame(() => {
+          setRiskProbability(() => data.prob_cheat);
+        });
       }
 
       if (data.question_index !== undefined) {
@@ -252,6 +254,32 @@ FINAL VERDICT HANDLER
     },
     [selectedStudent, currentQuestion],
   );
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (!selectedStudent) return;
+
+      const tag = e.target.tagName.toLowerCase();
+      if (tag === "input" || tag === "textarea") return;
+
+      // 🔥 DEBUG LOG
+      console.log("⌨️ Key pressed:", e.key);
+
+      if (e.key.toLowerCase() === "m") {
+        triggerManualGlobal("medium");
+      }
+
+      if (e.key.toLowerCase() === "h") {
+        triggerManualGlobal("high");
+      }
+    };
+
+    window.addEventListener("keydown", handleKey);
+
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [selectedStudent, triggerManualGlobal]);
 
   /*
 ==================================================
@@ -461,23 +489,6 @@ KEYBOARD SHORTCUT (MANUAL OVERRIDE)
                   <p className="text-sm mt-2">
                     {(riskProbability * 100).toFixed(2)}%
                   </p>
-                </div>
-
-                {/* 🔥 HIDDEN MANUAL CONTROL PANEL */}
-                <div className="mt-2 flex justify-end gap-3 opacity-10 hover:opacity-100 transition">
-                  <button
-                    onClick={() => triggerManualGlobal("medium")}
-                    className="text-xs text-gray-400 hover:text-gray-600"
-                  >
-                    medium
-                  </button>
-
-                  <button
-                    onClick={() => triggerManualGlobal("high")}
-                    className="text-xs text-gray-400 hover:text-gray-600"
-                  >
-                    high
-                  </button>
                 </div>
 
                 {/* AI SESSION VERDICT */}
