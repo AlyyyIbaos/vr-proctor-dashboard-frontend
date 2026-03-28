@@ -131,15 +131,45 @@ export default function ProctorDashboardPage() {
       */
 
       if (alert.event_type === "behavioral") {
-        setBehaviorLogs((prev) => [
-          {
-            question_index: alert.question_index,
-            final_label: alert.severity,
-            avg_probability: alert.confidence_level,
-            detected_at: alert.detected_at,
-          },
-          ...prev,
-        ]);
+        // 🔥 1. VALIDATION GUARD
+        if (
+          alert.confidence_level == null ||
+          alert.question_index == null ||
+          !alert.detected_at
+        ) {
+          console.warn("⚠️ Skipping invalid alert:", alert);
+          return;
+        }
+
+        // 🔥 SOURCE VALIDATION (ADD THIS)
+        const allowedSources = ["manual", "ai", undefined];
+
+        if (!allowedSources.includes(alert.source)) {
+          console.warn("⚠️ Unknown alert source:", alert.source);
+          return;
+        }
+
+        // 🔥 2. DEDUPLICATION (CRITICAL FIX)
+        setBehaviorLogs((prev) => {
+          const exists = prev.some(
+            (log) =>
+              log.detected_at === alert.detected_at &&
+              log.question_index === alert.question_index &&
+              log.final_label === alert.severity,
+          );
+
+          if (exists) return prev;
+
+          return [
+            {
+              question_index: alert.question_index,
+              final_label: alert.severity,
+              avg_probability: alert.confidence_level,
+              detected_at: alert.detected_at,
+            },
+            ...prev,
+          ];
+        });
       }
 
       /*
@@ -162,19 +192,14 @@ export default function ProctorDashboardPage() {
 
     const handleLiveStatus = (data) => {
       if (!data || data.session_id !== sessionId) return;
-      console.log("📊 LIVE STATUS FULL:", data); // 🔥 full payload
+
+      console.log("📊 LIVE STATUS FULL:", data);
 
       if (!manualOverrideRef.current) {
-        requestAnimationFrame(() => {
-          setRiskProbability((prev) => {
-            const alpha = 0.6; // smoothing factor
-            return prev * (1 - alpha) + data.prob_cheat * alpha;
-          });
-        });
+        setRiskProbability(data.prob_cheat); // ✅ direct sync
       }
 
       if (data.question_index !== undefined) {
-        console.log("🎯 CURRENT QUESTION:", data.question_index); // 🔥 debug
         setCurrentQuestion(data.question_index);
       } else {
         console.warn("⚠️ question_index missing in live_status");
@@ -239,28 +264,9 @@ FINAL VERDICT HANDLER
             : Math.random() * (0.7 - 0.55) + 0.55;
 
         // 🔥 UPDATE BAR
-        setRiskProbability(randomConfidence);
+        setRiskProbability(Math.max(0, Math.min(1, randomConfidence)));
 
         // 🔥 UPDATE TIMELINE
-        setBehaviorLogs((prev) => {
-          const exists = prev.some(
-            (p) =>
-              p.detected_at === alert.detected_at &&
-              p.question_index === alert.question_index,
-          );
-
-          if (exists) return prev;
-
-          return [
-            {
-              question_index: alert.question_index,
-              final_label: alert.severity,
-              avg_probability: alert.confidence_level,
-              detected_at: alert.detected_at,
-            },
-            ...prev,
-          ];
-        });
       } catch (err) {
         console.error("Manual flag error:", err);
       }
@@ -535,11 +541,15 @@ FINAL VERDICT HANDLER
                         {log.detected_at
                           ? new Date(log.detected_at).toLocaleTimeString()
                           : "—"}
-                        ] — Q{log.question_index ?? "-"} — {log.final_label}
+                        ] — Q{log.question_index ?? "-"} —{" "}
+                        {log.final_label ?? "-"}
                       </p>
 
                       <p className="text-xs text-gray-500">
-                        Confidence: {(log.avg_probability * 100).toFixed(1)}%
+                        Confidence:{" "}
+                        {log.avg_probability != null
+                          ? `${(log.avg_probability * 100).toFixed(1)}%`
+                          : "—"}
                       </p>
                     </div>
                   ))}
