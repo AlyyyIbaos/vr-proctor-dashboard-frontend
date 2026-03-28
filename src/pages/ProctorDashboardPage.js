@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import StudentLayout from "../components/layout/StudentLayout";
 import api from "../api";
 import socket from "../services/socket";
@@ -17,6 +17,14 @@ export default function ProctorDashboardPage() {
   const [finalVerdict, setFinalVerdict] = useState(null);
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [manualOverride, setManualOverride] = useState(false);
+
+  const manualOverrideRef = useRef(false);
+  // 🔥 SYNC STATE → REF (PUT HERE)
+  useEffect(() => {
+    manualOverrideRef.current = manualOverride;
+  }, [manualOverride]);
+
   /*
   ==================================================
   FETCH LIVE EXAMS
@@ -146,7 +154,9 @@ export default function ProctorDashboardPage() {
       if (!data || data.session_id !== sessionId) return;
       console.log("📊 LIVE STATUS FULL:", data); // 🔥 full payload
 
-      setRiskProbability(data.prob_cheat);
+      if (!manualOverrideRef.current) {
+        setRiskProbability(data.prob_cheat);
+      }
 
       if (data.question_index !== undefined) {
         console.log("🎯 CURRENT QUESTION:", data.question_index); // 🔥 debug
@@ -191,13 +201,24 @@ FINAL VERDICT HANDLER
           severity,
         });
 
+        setManualOverride(true);
+
         console.log("🧠 Manual global flag:", severity);
 
+        const randomConfidence =
+          severity === "high"
+            ? Math.random() * (0.95 - 0.8) + 0.8 // 80%–95%
+            : Math.random() * (0.7 - 0.55) + 0.55; // 55%–70%
+
+        // 🔥 UPDATE RISK BAR IMMEDIATELY
+        setRiskProbability((prev) => prev + (randomConfidence - prev) * 0.6);
+
+        // 🔥 UPDATE TIMELINE
         setBehaviorLogs((prev) => [
           {
             question_index: currentQuestion,
             final_label: severity,
-            avg_probability: severity === "high" ? 0.9 : 0.6,
+            avg_probability: randomConfidence,
             detected_at: new Date().toISOString(),
           },
           ...prev,
