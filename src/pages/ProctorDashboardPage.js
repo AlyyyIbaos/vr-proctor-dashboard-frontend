@@ -20,10 +20,20 @@ export default function ProctorDashboardPage() {
   const [manualOverride, setManualOverride] = useState(false);
 
   const manualOverrideRef = useRef(false);
+  const timeoutRef = useRef(null);
+
   // 🔥 SYNC STATE → REF (PUT HERE)
   useEffect(() => {
     manualOverrideRef.current = manualOverride;
   }, [manualOverride]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   /*
   ==================================================
@@ -201,17 +211,30 @@ FINAL VERDICT HANDLER
           severity,
         });
 
-        setManualOverride(true);
-
         console.log("🧠 Manual global flag:", severity);
 
+        // 🔥 ACTIVATE OVERRIDE
+        setManualOverride(true);
+
+        // 🔥 CLEAR PREVIOUS TIMER (IMPORTANT)
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        // 🔥 SET NEW TIMER
+        timeoutRef.current = setTimeout(() => {
+          setManualOverride(false);
+          console.log("🔓 Manual override released");
+        }, 5000);
+
+        // 🔥 RANDOM CONFIDENCE
         const randomConfidence =
           severity === "high"
-            ? Math.random() * (0.95 - 0.8) + 0.8 // 80%–95%
-            : Math.random() * (0.7 - 0.55) + 0.55; // 55%–70%
+            ? Math.random() * (0.95 - 0.8) + 0.8
+            : Math.random() * (0.7 - 0.55) + 0.55;
 
-        // 🔥 UPDATE RISK BAR IMMEDIATELY
-        setRiskProbability((prev) => prev + (randomConfidence - prev) * 0.6);
+        // 🔥 UPDATE BAR
+        setRiskProbability(randomConfidence);
 
         // 🔥 UPDATE TIMELINE
         setBehaviorLogs((prev) => [
