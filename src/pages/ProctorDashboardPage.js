@@ -513,12 +513,6 @@ FINAL VERDICT HANDLER
                         {finalVerdict.question_summary.map((q, i) => (
                           <p key={i}>
                             Q{q.question} — {q.verdict.toUpperCase()}
-                            {q.ratio !== undefined && (
-                              <span className="text-xs text-gray-500 ml-2">
-                                ({q.suspicious_count}/{q.total_windows},{" "}
-                                {q.ratio})
-                              </span>
-                            )}
                           </p>
                         ))}
                       </div>
