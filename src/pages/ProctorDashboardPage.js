@@ -19,10 +19,19 @@ export default function ProctorDashboardPage() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [manualOverride, setManualOverride] = useState(false);
 
+  const [voiceIdentity, setVoiceIdentity] = useState({
+    vad_prob: 0,
+    speech_active: false,
+    status: "silence",
+    speaker_similarity: null,
+    speaker_match: null,
+    speaker_mismatch: null,
+    message: "Silence",
+  });
+
   const manualOverrideRef = useRef(false);
   const timeoutRef = useRef(null);
 
-  // 🔥 SYNC STATE → REF (PUT HERE)
   useEffect(() => {
     manualOverrideRef.current = manualOverride;
   }, [manualOverride]);
@@ -34,12 +43,6 @@ export default function ProctorDashboardPage() {
       }
     };
   }, []);
-
-  /*
-  ==================================================
-  FETCH LIVE EXAMS
-  ==================================================
-  */
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -55,12 +58,6 @@ export default function ProctorDashboardPage() {
     fetchExams();
   }, []);
 
-  /*
-  ==================================================
-  FETCH RUNTIME SECURITY LOGS
-  ==================================================
-  */
-
   useEffect(() => {
     if (!selectedStudent) return;
 
@@ -75,12 +72,6 @@ export default function ProctorDashboardPage() {
 
     fetchRuntimeLogs();
   }, [selectedStudent]);
-
-  /*
-  ==================================================
-  FETCH BEHAVIORAL TIMELINE
-  ==================================================
-  */
 
   useEffect(() => {
     if (!selectedStudent) return;
@@ -100,12 +91,6 @@ export default function ProctorDashboardPage() {
     fetchBehaviorLogs();
   }, [selectedStudent]);
 
-  /*
-  ==================================================
-  SOCKET.IO REAL-TIME MONITORING
-  ==================================================
-  */
-
   useEffect(() => {
     if (!selectedStudent) return;
 
@@ -115,23 +100,12 @@ export default function ProctorDashboardPage() {
 
     console.log("🔗 Monitoring session:", sessionId);
 
-    /*
-    ==========================
-    ALERT HANDLER
-    ==========================
-    */
-
     const handleAlert = (alert) => {
       if (alert.session_id !== sessionId) return;
 
       console.log("🚨 Alert received:", alert);
 
-      /*
-      Behavioral AI Detection
-      */
-
       if (alert.event_type === "behavioral") {
-        // 🔥 1. VALIDATION GUARD
         if (
           alert.confidence_level == null ||
           alert.question_index == null ||
@@ -141,7 +115,6 @@ export default function ProctorDashboardPage() {
           return;
         }
 
-        // 🔥 SOURCE VALIDATION (ADD THIS)
         const allowedSources = ["manual", "ai", undefined];
 
         if (!allowedSources.includes(alert.source)) {
@@ -149,7 +122,6 @@ export default function ProctorDashboardPage() {
           return;
         }
 
-        // 🔥 2. DEDUPLICATION (CRITICAL FIX)
         setBehaviorLogs((prev) => {
           const exists = prev.some(
             (log) =>
@@ -172,10 +144,6 @@ export default function ProctorDashboardPage() {
         });
       }
 
-      /*
-      Runtime Security Logs
-      */
-
       if (
         alert.event_type === "object injection" ||
         alert.event_type === "scene tampering"
@@ -184,19 +152,13 @@ export default function ProctorDashboardPage() {
       }
     };
 
-    /*
-    ==========================
-    LIVE AI RISK SCORE
-    ==========================
-    */
-
     const handleLiveStatus = (data) => {
       if (!data || data.session_id !== sessionId) return;
 
       console.log("📊 LIVE STATUS FULL:", data);
 
       if (!manualOverrideRef.current) {
-        setRiskProbability(data.prob_cheat); // ✅ direct sync
+        setRiskProbability(data.prob_cheat);
       }
 
       if (data.question_index !== undefined) {
@@ -206,11 +168,16 @@ export default function ProctorDashboardPage() {
       }
     };
 
-    /*
-==========================
-FINAL VERDICT HANDLER
-==========================
-*/
+    const handleVoiceStatus = (data) => {
+      if (!data || data.session_id !== sessionId) return;
+
+      console.log("🎙️ Voice status received:", data);
+
+      if (data.voice_identity) {
+        setVoiceIdentity(data.voice_identity);
+      }
+    };
+
     const handleSessionFinalized = (data) => {
       if (data.session_id !== sessionId) return;
 
@@ -221,6 +188,7 @@ FINAL VERDICT HANDLER
 
     socket.on("new_alert", handleAlert);
     socket.on("live_status", handleLiveStatus);
+    socket.on("voice-status", handleVoiceStatus);
     socket.on("session_finalized", handleSessionFinalized);
 
     return () => {
@@ -228,6 +196,7 @@ FINAL VERDICT HANDLER
 
       socket.off("new_alert", handleAlert);
       socket.off("live_status", handleLiveStatus);
+      socket.off("voice-status", handleVoiceStatus);
       socket.off("session_finalized", handleSessionFinalized);
     };
   }, [selectedStudent]);
@@ -243,30 +212,23 @@ FINAL VERDICT HANDLER
 
         console.log("🧠 Manual global flag:", severity);
 
-        // 🔥 ACTIVATE OVERRIDE
         setManualOverride(true);
 
-        // 🔥 CLEAR PREVIOUS TIMER (IMPORTANT)
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
         }
 
-        // 🔥 SET NEW TIMER
         timeoutRef.current = setTimeout(() => {
           setManualOverride(false);
           console.log("🔓 Manual override released");
         }, 5000);
 
-        // 🔥 RANDOM CONFIDENCE
         const randomConfidence =
           severity === "high"
             ? Math.random() * (0.95 - 0.8) + 0.8
             : Math.random() * (0.7 - 0.55) + 0.55;
 
-        // 🔥 UPDATE BAR
         setRiskProbability(Math.max(0, Math.min(1, randomConfidence)));
-
-        // 🔥 UPDATE TIMELINE
       } catch (err) {
         console.error("Manual flag error:", err);
       }
@@ -281,7 +243,6 @@ FINAL VERDICT HANDLER
       const tag = e.target.tagName.toLowerCase();
       if (tag === "input" || tag === "textarea") return;
 
-      // 🔥 DEBUG LOG
       console.log("⌨️ Key pressed:", e.key);
 
       if (e.key.toLowerCase() === "m") {
@@ -300,23 +261,21 @@ FINAL VERDICT HANDLER
     };
   }, [selectedStudent, triggerManualGlobal]);
 
-  /*
-  ==================================================
-  RISK BAR COLOR
-  ==================================================
-  */
-
   const riskColor = (p) => {
     if (p > 0.8) return "bg-red-600";
     if (p > 0.5) return "bg-yellow-500";
     return "bg-green-600";
   };
 
-  /*
-  ==================================================
-  OVERVIEW STATS
-  ==================================================
-  */
+  const vadPercent = Math.round((voiceIdentity.vad_prob || 0) * 100);
+
+  const voiceLabel =
+    voiceIdentity.status === "speech_detected"
+      ? "Examinee Speaking"
+      : "Silence";
+
+  const voiceBarColor =
+    voiceIdentity.status === "speech_detected" ? "bg-green-600" : "bg-gray-400";
 
   const totalSessions = exams.reduce((acc, exam) => {
     return acc + (exam.sessions?.length || 0);
@@ -332,8 +291,6 @@ FINAL VERDICT HANDLER
   return (
     <StudentLayout>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* NAV TABS */}
-
         <div className="flex space-x-8 border-b pb-3">
           {["overview", "sessions"].map((tab) => (
             <button
@@ -353,8 +310,6 @@ FINAL VERDICT HANDLER
             </button>
           ))}
         </div>
-
-        {/* OVERVIEW */}
 
         {activeTab === "overview" && (
           <div className="space-y-6">
@@ -378,8 +333,6 @@ FINAL VERDICT HANDLER
             </div>
           </div>
         )}
-
-        {/* SESSIONS TAB */}
 
         {activeTab === "sessions" && (
           <div className="bg-white shadow rounded p-6">
@@ -417,6 +370,15 @@ FINAL VERDICT HANDLER
                       setSelectedStudent(student);
                       setRiskProbability(0);
                       setFinalVerdict(null);
+                      setVoiceIdentity({
+                        vad_prob: 0,
+                        speech_active: false,
+                        status: "silence",
+                        speaker_similarity: null,
+                        speaker_match: null,
+                        speaker_mismatch: null,
+                        message: "Silence",
+                      });
                     }}
                     className="border rounded p-3 mb-2 cursor-pointer hover:shadow flex justify-between"
                   >
@@ -439,8 +401,6 @@ FINAL VERDICT HANDLER
                   ← Back to Examinees
                 </button>
 
-                {/* STUDENT HEADER */}
-
                 <div>
                   <h2 className="text-xl font-semibold">
                     {selectedStudent.examinee_name}
@@ -461,8 +421,6 @@ FINAL VERDICT HANDLER
                   </div>
                 </div>
 
-                {/* AI THREAT PROBABILITY */}
-
                 <div className="mt-4">
                   <p className="text-sm text-gray-500 mb-2">
                     AI Threat Probability
@@ -480,7 +438,27 @@ FINAL VERDICT HANDLER
                   </p>
                 </div>
 
-                {/* AI SESSION VERDICT */}
+                <div className="mt-6 border rounded p-4">
+                  <h3 className="font-semibold mb-3">Voice Activity</h3>
+
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-500">Status</span>
+                    <span className="font-medium">{voiceLabel}</span>
+                  </div>
+
+                  <div className="w-full h-4 bg-gray-200 rounded">
+                    <div
+                      className={`${voiceBarColor} h-4 rounded transition-all`}
+                      style={{ width: `${vadPercent}%` }}
+                    />
+                  </div>
+
+                  <p className="text-sm mt-2">VAD: {vadPercent}%</p>
+
+                  <p className="text-xs text-gray-500 mt-1">
+                    {voiceIdentity.message}
+                  </p>
+                </div>
 
                 <div className="mt-6 border rounded p-4">
                   <h3 className="font-semibold mb-2">AI Session Verdict</h3>
@@ -520,8 +498,6 @@ FINAL VERDICT HANDLER
                   )}
                 </div>
 
-                {/* BEHAVIORAL TIMELINE */}
-
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3">Behavioral Timeline</h3>
 
@@ -548,8 +524,6 @@ FINAL VERDICT HANDLER
                     </div>
                   ))}
                 </div>
-
-                {/* RUNTIME SECURITY LOGS */}
 
                 <div className="mt-6">
                   <h3 className="font-semibold mb-3">Runtime Security Logs</h3>
